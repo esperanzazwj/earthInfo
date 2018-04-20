@@ -1,0 +1,36 @@
+{
+    "name":"quad pass",
+    "GLShader":{
+        "vertex shader":{
+            "name":"vs",
+            "path":"quad.vs"
+        },
+        "fragment shader":{
+            "name":"fs",
+            "path":"quad.fs"
+        }
+    },
+    "DXShader":{
+
+    },
+    "input":{
+        "uniform":{
+
+        },
+        "attribute":{
+            "vPositon":{
+                "type":"vec3",
+                "semantic":"POSITION",
+                "index":0
+            },
+            "vNormal":{
+                "type":"vec3",
+                "semantic":"NORMAL",
+                "index":1
+            }
+        }
+    },
+    "output":{
+        "rendertarget":"目前还没使用"
+    }
+}

@@ -1,0 +1,25 @@
+{
+    "version": "0.2.1",
+    "tasks": [
+        {
+            "taskName": "Web / Build with Docker",
+            "appliesTo": "*",
+            "type": "launch",
+            "contextType": "custom",
+            "command": "${env.COMSPEC}",
+            "args": [
+                "docker run -v ${workspaceRoot}:/build cjxgm/emscripten-arch make -C /build web -j8"
+            ]
+        },
+        {
+            "taskName": "Web / Clean with Docker",
+            "appliesTo": "*",
+            "type": "launch",
+            "contextType": "custom",
+            "command": "${env.COMSPEC}",
+            "args": [
+                "docker run -v ${workspaceRoot}:/build cjxgm/emscripten-arch make -C /build clean"
+            ]
+        }
+    ]
+}

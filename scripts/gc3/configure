@@ -1,0 +1,761 @@
+#!/usr/bin/env perl
+use utf8;
+use strict;
+use warnings;
+use autodie;
+
+############# default configuration ##############
+my $base_dir__source = "src";
+my $base_dir__third_party = "third-party";
+
+my @include_dir__third_party = ();
+my @library__pkg_config = ();
+my @library__link = ();
+
+my $pkg_config__bin = "pkg-config";
+
+my $compiler__bin = "g++";
+my $compiler__flags__standard = "c++14";
+my $compiler__flags__optimization_level = "3";
+my $compiler__flags__architecture = "native";
+my @compiler__flags__extra = qw[-Wall -Wextra];
+my @compiler__sanitizers = ();
+
+my $loader__bin = "g++";
+my @loader__flags__extra = ();
+
+my $build__config_path = "build.pl";
+my $build__cache_dir = "cache";
+my $build__cache_keep_recent = 5;
+my $build__flags_path = "build.flags";
+my $build__makefile_path = "makefile";
+my $build__output_dir = "build";
+my $build__output_bin = "build";
+my $build__output_bin_dir = "build";
+my $build__output_bin_suffix = "";
+my @build__output_bin_extra_suffixes = ();
+my $build__main_impl = "main.cc";
+
+my $makefile__show_commands = 1;
+my @makefile__commands__test = (
+    {
+        name => '$(BIN)',
+        commands => [
+            '$(BIN)',
+        ],
+    },
+);
+########### end default configuration ############
+
+#############################
+## IMPLEMENTATION DETAILS, ##
+## DO NOT LOOK ANY FURTHER ##
+#############################
+
+my $debugging = 0;
+my @compiler__flags;
+my @loader__flags;
+my $configure__args = join " ", @ARGV;
+my $cache_dir = "$build__output_dir/$build__cache_dir";
+my $cache_path = "cache";
+
+my %file_infos;
+my %known_impls;
+my %known_headers;
+my %outdated_files;
+
+my $ANSI_UNESCAPE_SEQUENCE__RESET = "[0m";
+my $ANSI_UNESCAPE_SEQUENCE__ACTION = "[1;32m";
+my $ANSI_UNESCAPE_SEQUENCE__ARGUMENT = "[1;35m";
+my $ANSI_UNESCAPE_SEQUENCE__MORE = "[1;36m";
+my $ANSI_UNESCAPE_SEQUENCE__LESS = "[1;31m";
+my $ANSI_UNESCAPE_SEQUENCE__COMMENT = "[1;33m";
+
+my $COLOR_RST = "\e$ANSI_UNESCAPE_SEQUENCE__RESET";
+my $COLOR_ACT = "\e$ANSI_UNESCAPE_SEQUENCE__ACTION";
+my $COLOR_ARG = "\e$ANSI_UNESCAPE_SEQUENCE__ARGUMENT";
+my $COLOR_MORE = "\e$ANSI_UNESCAPE_SEQUENCE__MORE";
+my $COLOR_LESS = "\e$ANSI_UNESCAPE_SEQUENCE__LESS";
+my $COLOR_COMMENT = "\e$ANSI_UNESCAPE_SEQUENCE__COMMENT";
+
+my @incl_suffixes = qw[hh hpp hxx h++ H h pull];
+my @impl_suffixes = qw[cc cpp cxx c++ C c];
+my $incl_suffixes = join "|", map { quotemeta } @incl_suffixes;
+my $impl_suffixes = join "|", map { quotemeta } @impl_suffixes;
+my $re_incl = qr{\.(?:$incl_suffixes)$};
+my $re_impl = qr{\.(?:$impl_suffixes)$};
+
+sub main
+{
+    # This must come first so that user cannot override calculated values.
+    &config__load($build__config_path) if -f $build__config_path;
+
+    $cache_path .= &string__digest($compiler__bin);
+    $cache_path .= &string__digest(join " ", @compiler__flags);
+    $cache_path = &string__digest($cache_path);
+    $cache_path = "$cache_dir/$cache_path";
+
+    # User may override the hidden $debugging variable in build.pl,
+    # but the command line argument takes precedence.
+    $debugging = 1 if defined $ARGV[0] && $ARGV[0] eq "-d";
+
+    &output__variable__bool('debugging');
+    &output__variable__bool('makefile__show_commands');
+
+    &deps__load($cache_path) if -f $cache_path;
+
+    # prepare compiler flags
+    push @compiler__flags, ("-fno-operator-names");     # Operator name should be fucked off from C++!
+    push @compiler__flags, map { "-fsanitize=$_" } @compiler__sanitizers;
+    push @compiler__flags, ("-march=$compiler__flags__architecture") if defined $compiler__flags__architecture;
+    push @compiler__flags, ("-std=$compiler__flags__standard");
+    push @compiler__flags, ("-O$compiler__flags__optimization_level");
+    push @compiler__flags, @compiler__flags__extra;
+    push @compiler__flags, ("-isystem", &path__normalize("$base_dir__third_party/$_")) for @include_dir__third_party;
+    push @compiler__flags, &system__pkg_config__compiler_flags(@library__pkg_config);
+
+    # prepare loader flags
+    push @loader__flags, @loader__flags__extra;
+    push @loader__flags, map { "-fsanitize=$_" } @compiler__sanitizers;
+    push @loader__flags, map { "-l$_" } @library__link;
+    push @loader__flags, &system__pkg_config__loader_flags(@library__pkg_config);
+
+    # update dependencies when necessary
+    my $main_impl = &path__normalize("$base_dir__source/$build__main_impl");
+    &deps__update_impl($main_impl);
+    &deps__clear_unknown_files();
+
+    &file__mkdir($cache_dir);
+    &deps__save($cache_path);
+
+    &flags__write($build__flags_path);
+    &makefile__write($build__makefile_path);
+    &cache__purge() if $build__cache_keep_recent >= 0;
+}
+
+sub config__load
+{
+    my ($config_path) = @_;
+    open my $fh, "<", $config_path;
+    local $/;
+    eval <$fh>;
+}
+
+sub deps__save
+{
+    my ($cache_path) = @_;
+    open my $fh, ">", $cache_path;
+
+    for my $path (sort keys %file_infos) {
+        my $info = $file_infos{$path};
+        my $digest = $info->{digest};
+        my $deps = $info->{dependencies};
+        print $fh "$digest ", &path__array__join($path, @$deps), "\n";
+    }
+}
+
+sub deps__load
+{
+    my ($cache_path) = @_;
+    open my $fh, "<", $cache_path;
+
+    while (<$fh>) {
+        m{^\s+$} and next;
+        m{
+            (?<digest>\S+)
+            \s+
+            (?<deps>.*)
+        }x or die "Invalid cache line: $_\n";
+
+        my @deps = &path__array__split($+{deps});
+        my $path = shift @deps;
+        $file_infos{$path} = {
+            %+{qw[digest]},
+            path => $path,
+            dependencies => \@deps,
+        };
+    }
+}
+
+sub deps__update_impl
+{
+    my ($source_impl_path) = @_;
+    my %impl_pending = ($source_impl_path => undef);
+
+    while (%impl_pending) {
+        keys %impl_pending;      # reset iterator for following "each" call
+        my ($impl_path) = each %impl_pending;
+        delete $impl_pending{$impl_path};
+
+        next if exists $known_impls{$impl_path};
+        $known_impls{$impl_path} = undef;
+
+        die "Cache corrupted. There should be a file called $impl_path.\n" unless -e $impl_path;
+
+        for my $info ($file_infos{$impl_path}) {
+            if (&deps__impl_outdated($impl_path)) {
+                $info = &deps__fetch_for_impl($impl_path);
+            }
+
+            for my $header (@{$info->{dependencies}}) {
+                &deps__update_header($header);
+                @impl_pending{&path__impl_from_header($header)} = undef;
+            }
+        }
+    }
+}
+
+sub deps__update_header
+{
+    my ($header_path) = @_;
+
+    return if exists $known_headers{$header_path};
+    $known_headers{$header_path} = undef;
+
+    for my $info ($file_infos{$header_path}) {
+        if (&deps__file_outdated($header_path)) {
+            $info = &deps__fetch_for_header($header_path);
+        }
+    }
+}
+
+sub deps__file_outdated
+{
+    my ($path) = @_;
+    my $is_outdated = sub {
+        my ($info) = @_;
+        return 1 unless defined $info;
+
+        for my $old_digest ($info->{digest}) {
+            my $new_digest = &file__digest($path);
+            print "$new_digest =?= $old_digest for $path\n" if $debugging;
+            return 1 if $new_digest ne $old_digest;
+        }
+
+        return 0;
+    };
+
+    unless (exists $outdated_files{$path}) {
+        for my $outdated ($outdated_files{$path}) {
+            $outdated = $is_outdated->($file_infos{$path});
+            &output__progress("# outdated", $path) if $outdated;
+        }
+    }
+    return $outdated_files{$path};
+}
+
+sub deps__impl_headers_outdated
+{
+    my ($impl_path) = @_;
+    my $info = $file_infos{$impl_path};
+    my $deps = $info->{dependencies};
+    my $outdated = grep { !-e $_ || &deps__file_outdated($_) } @$deps;
+    $outdated;
+}
+
+sub deps__impl_outdated
+{
+    my ($impl_path) = @_;
+    &deps__file_outdated($impl_path) || &deps__impl_headers_outdated($impl_path);
+}
+
+sub deps__fetch_for_impl
+{
+    my ($impl_path) = @_;
+    &output__progress("+ resolving", $impl_path);
+    return {
+        path => $impl_path,
+        digest => &file__digest($impl_path),
+        dependencies => &system__find_depended_headers($impl_path),
+    };
+}
+
+sub deps__fetch_for_header
+{
+    my ($header_path) = @_;
+    &output__progress("+ tracking", $header_path);
+    return {
+        path => $header_path,
+        digest => &file__digest($header_path),
+        dependencies => [],
+    };
+}
+
+sub deps__clear_unknown_files
+{
+    my $know = sub {
+        my ($path) = @_;
+        exists $known_impls{$path} || exists $known_headers{$path};
+    };
+    my $remove = sub {
+        my ($path) = @_;
+        &output__progress("- untracking", $path);
+        delete $file_infos{$path};
+    };
+    $remove->($_) for grep { !$know->($_) } sort keys %file_infos;
+}
+
+# C++ header file suffix sorted by recommendation
+# (".hh" is recommended, ".h" is discouraged. case sensitive):
+#
+#   .hh .hpp .hxx .h++ .H <> .h
+#
+# where "<>" above means "no suffix".
+#
+# C++ translation unit (impl) file suffix sorted by recommendation
+# (".cc" is recommended, ".c" is discouraged. case sensitive):
+#
+#   .cc .cpp .cxx .c++ .C .c
+sub path__impl_from_header
+{
+    my ($header) = @_;
+    $header =~ s{$re_incl}{} or return;
+    grep { -f } map { "$header.$_" } @impl_suffixes;
+}
+
+sub path__object_from_impl
+{
+    my ($impl) = @_;
+    $impl =~ m{$re_impl} or die "Not a C++ translation unit file: $impl\n";
+
+    my ($name) = $impl =~ m{(?:^|/)([^/]+)$};
+
+    my $identifier = join "", grep { defined } map { $file_infos{$_}->{digest} } ($impl, @{$file_infos{$impl}->{dependencies}});
+    $identifier .= &string__digest($impl);
+    $identifier .= &string__digest($compiler__bin);
+    $identifier .= &string__digest(join " ", @compiler__flags);
+    $identifier = &string__digest($identifier);
+
+    "objects/$name.$identifier.o";
+}
+
+# Normalize a path to something that is consistent enough
+# for comparison and identifting the same file.
+#
+# A relative path will be normalized to another relative path (relative to CWD),
+# and an absolute path will be normalized to another absolute path.
+#
+# EXAMPLES:
+#   ./a/b/../c/ => a/c
+#   ../a/b/../../../c => ../../c
+#   ../makeless   => .                   # if CWD is     "makeless"
+#   ../makeless/  => .                   # if CWD is     "makeless"
+#   ../makeless/. => .                   # if CWD is     "makeless"
+#   ../makeless/a => a                   # if CWD is     "makeless"
+#   ../makeless/a => ../makeless/a       # if CWD is NOT "makeless"
+#   ../makeless/  => ../makeless         # if CWD is NOT "makeless"
+#   /tmp/example/../hello => /tmp/hello  # even if CWD is "/tmp"
+#
+# This function does physically walking in the filesystem
+# and expands symbolic links.
+#
+# It dies if file does not exist.
+sub path__normalize
+{
+    use Cwd qw(abs_path);
+    use File::Spec::Functions qw(abs2rel);
+
+    my ($path) = @_;
+
+    my $apath = abs_path($path);
+    die "Non-existent path: $path\n" unless defined $apath;
+    return $apath if $path =~ m{^/};
+
+    abs2rel($apath);
+}
+
+# Try to expand relative path to absolute path.
+# Return the original parameter if failed (e.g. file not exists)
+sub path__try_expand
+{
+    use Cwd qw(abs_path);
+    my ($path) = @_;
+    my $apath = abs_path($path);
+    $apath || $path;
+}
+
+# Guess if the parameter is a path.
+sub path__guess
+{
+    my ($path) = @_;
+    for ($path) {
+        return undef if m{^-};
+        return m{^\.\.?/} || m{/};
+    }
+}
+
+sub path__array__split
+{
+    local $_ = $_[0];
+    s{^\s+}{};
+    s{\s+$}{};
+    map { s{\\(.)}{$1}g; $_ } m{(?:\\.|\S)+}g;
+}
+
+sub path__array__join
+{
+    my @parts = @_;
+    join " ", map { s{\s}{\\$&}g; $_ } @parts;
+}
+
+sub path__cache_kind
+{
+    my ($path) = @_;
+    $path =~ s{
+        (?: ^ | [./] )
+        [a-f0-9]{32}            # md5 hex
+        ((?: \. [^./]* )*)      # file suffixes (".tar.gz", ".pl", "", ...)
+        $
+    }{$1}rx;
+}
+
+sub path__collect_cache
+{
+    my @caches = sort map { &path__normalize($_) } <"$build__output_dir/*/*">;
+    \@caches;
+}
+
+sub path__aged_cache
+{
+    my ($caches) = @_;
+
+    my %caches;
+    push $caches{&path__cache_kind($_)}->@*, $_ for @$caches;
+
+    my @aged;
+    for my $files (values %caches) {
+        next if @$files <= $build__cache_keep_recent;
+        my @files = sort { &file__mtime($b) <=> &file__mtime($a) } @$files;
+        push @aged, @files[$build__cache_keep_recent..$#files];
+    }
+
+    @aged = sort @aged;
+    \@aged;
+}
+
+sub cache__purge
+{
+    my $aged = &path__aged_cache(&path__collect_cache());
+    for my $path (@$aged) {
+        &output__progress("- purging", $path);
+        unlink $path;
+    }
+}
+
+sub string__digest
+{
+    use Digest::MD5 qw(md5_hex);
+    my ($x) = @_;
+    md5_hex($x);
+}
+
+sub file__mtime
+{
+    my ($path) = @_;
+    (stat $path)[9];
+}
+
+sub file__digest
+{
+    use Digest::file qw(digest_file_hex);
+    my ($path) = @_;
+
+    my $digest = digest_file_hex($path, "MD5");
+    $digest .= &string__digest($compiler__bin);
+    $digest .= &string__digest(join " ", @compiler__flags);
+    $digest = &string__digest($digest);
+
+    return $digest;
+}
+
+sub file__mkdir
+{
+    use File::Path qw[make_path];
+    my ($path) = @_;
+    make_path($path);
+}
+
+sub system__find_depended_headers
+{
+    my ($impl_path) = @_;
+    local $_ = &system__run($compiler__bin, @compiler__flags, "-MM", $impl_path);
+    s{\s*\\\n\s*}{ }g;
+    my @deps = map { &path__normalize($_) } &path__array__split($_);
+    # @deps is now something like qw[BASENAME.o: BASENAME.cc dep1 dep2 dep3 ... depN]
+    # We only need the "dep1 dep2 ... depN" part.
+    @deps = splice @deps, 2;
+
+    # deduplication
+    my %deps;
+    @deps{@deps} = undef;
+    @deps = sort keys %deps;
+
+    \@deps;
+}
+
+sub system__pkg_config__compiler_flags
+{
+    return unless @_;
+    &path__array__split(&system__run($pkg_config__bin, "--cflags", @_));
+}
+
+sub system__pkg_config__loader_flags
+{
+    return unless @_;
+    &path__array__split(&system__run($pkg_config__bin, "--libs", @_));
+}
+
+sub system__run
+{
+    use IPC::Cmd qw[run];
+    my ($ok, $err, undef, $stdout, $stderr) = run(
+        command => [@_],
+        verbose => 0,
+    );
+    $stdout = join "", @$stdout;
+    $stderr = join "", @$stderr;
+    chomp $stderr;
+    chomp $stdout;
+    die "$err\n$stderr\n" unless $ok;
+    $stdout;
+}
+
+sub flags__write
+{
+    my ($path) = @_;
+    &output__progress("* writing", $path);
+
+    my @flags = map {
+        &path__guess($_) ? &path__try_expand($_) : $_
+    } (@compiler__flags, @loader__flags);
+
+    open my $fh, ">", $path;
+    print $fh &path__array__join(@flags);
+}
+
+sub makefile__write
+{
+    my ($path) = @_;
+    &output__progress("* writing", $path);
+
+    my $progress = sub {
+        my ($action, $arg) = @_;
+        die "LOGIC ERROR: action required" unless defined $action;
+        if (defined $arg) {
+            return "\@echo -e \"\$(COLOR_ACT)$action \$(COLOR_ARG)$arg\$(COLOR_RST)...\"";
+        } else {
+            return "\@echo -e \"\$(COLOR_ACT)$action\$(COLOR_RST)...\"";
+        }
+    };
+
+    my $command_prefix = $makefile__show_commands ? "" : "@";
+    my $build_dir = &path__normalize($build__output_dir);
+    my $compiler_flags = &path__array__join(@compiler__flags);
+    my $loader_flags = &path__array__join(@loader__flags);
+    my $compiler_cmd = sub {
+        my ($impl) = @_;
+        &path__array__join(
+            "$command_prefix\$(CC)",
+            "-c", "-o", "'\$\@'", "'$impl'", "\$(CCFLAGS)");
+    };
+    my $loader_cmd = &path__array__join(
+        "$command_prefix\$(LD)",
+        "-o", "'\$\@'", "\$(OBJECTS)", "\$(LDFLAGS)");
+    my $build = &path__array__join($build_dir);
+    my $bin = &path__array__join("$build__output_bin_dir/$build__output_bin$build__output_bin_suffix");
+
+    my @objects;
+    my @rules;
+    my @phonies;
+
+    my $make_directory = sub {
+        my ($target, $parent) = @_;
+        $parent //= '';
+        $parent = " | $parent" unless $parent eq '';
+        push @rules, join "\n\t", (
+            "$target:$parent",
+            $progress->("making directory", $target),
+            "${command_prefix}mkdir -p $target",
+        );
+    };
+
+    $make_directory->('$(BUILD)/');
+    $make_directory->('$(BUILD)/objects/', '$(BUILD)/');
+    $make_directory->('$(BUILD)/bin/', '$(BUILD)/');
+
+    for my $impl (sort keys %known_impls) {
+        my $info = $file_infos{$impl};
+        my $deps = $info->{dependencies};
+        my $obj = &path__object_from_impl($impl);
+        my $target = "\$(BUILD)/$obj";
+
+        push @objects, $target;
+        push @rules, join "\n\t", (
+            &path__array__join($target) . ': | $(BUILD)/objects/',
+            $progress->("compiling", $impl),
+            $compiler_cmd->($impl),
+        );
+    }
+
+    my $bin_id = &string__digest(join " ", @objects);
+    $bin_id .= &string__digest($bin);
+    $bin_id .= &string__digest($loader__bin);
+    $bin_id .= &string__digest(join " ", @loader__flags);
+    $bin_id = &string__digest($bin_id);
+    my $output_bin = "bin/$build__output_bin.$bin_id$build__output_bin_suffix";
+    push @rules, join "\n\t", (
+        "\$(BUILD)/$output_bin: | " . &path__array__join("\$(OBJECTS)") . ' $(BUILD)/bin/',
+        $progress->("loading", $build__output_bin),
+        $loader_cmd,
+    );
+
+    push @phonies, ".PHONY: all bin clean cleanall test rebuild";
+    push @phonies, join "\n\t", (
+        'all:',
+        '@perl configure $(CONFIGURE)',
+        '@$(MAKE) --no-print-directory bin',
+    );
+    push @phonies, join "\n\t", (
+        "bin: | \$(BUILD)/$output_bin",
+        "\@mkdir -p \$(BIN_DIR)",
+        "\@cp \$(BUILD)/$output_bin \$(BIN)",
+        (map {
+            "\@-cp \$(BUILD)/bin/$build__output_bin.$bin_id$_ \$(BIN_DIR)"
+        } @build__output_bin_extra_suffixes),
+    );
+    push @phonies, join "\n\t", (
+        "clean:",
+        $progress->("removing", '$(BUILD)'),
+        &path__array__join("${command_prefix}rm", '-rf', '$(BUILD)/'),
+    );
+    push @phonies, join "\n\t", (
+        "cleanall: clean",
+        $progress->("removing", 'build cache'),
+        &path__array__join("${command_prefix}rm", '-rf', 'build.cache'),
+        $progress->("removing", 'build flags'),
+        &path__array__join("${command_prefix}rm", '-rf', 'build.flags'),
+        $progress->("removing", 'makefile'),
+        &path__array__join("${command_prefix}rm", '-rf', 'makefile'),
+    );
+    push @phonies, join "\n\t", (
+        "test: all",
+        (map {(
+            $progress->("running", $_->{name}),
+            map { "$command_prefix$_" } @{$_->{commands}},
+        )} @makefile__commands__test),
+    );
+    push @phonies, join "\n\t", (
+        "rebuild: clean",
+        &path__array__join("\@\$(MAKE)", "--no-print-directory", "all"),
+    );
+
+    my $objects = &path__array__join(@objects);
+    my $rules = join "\n", @rules;
+    my $phonies = join "\n", @phonies;
+
+    open my $fh, ">", $path;
+    print $fh <<~END;
+        # named colors
+        COLOR_RST = \\e$ANSI_UNESCAPE_SEQUENCE__RESET
+        COLOR_ACT = \\e$ANSI_UNESCAPE_SEQUENCE__ACTION
+        COLOR_ARG = \\e$ANSI_UNESCAPE_SEQUENCE__ARGUMENT
+
+        # build tools and flags
+        CC = $compiler__bin
+        LD = $loader__bin
+        CCFLAGS = $compiler_flags
+        LDFLAGS = $loader_flags
+        OBJECTS = $objects
+        BUILD = $build
+        BIN_DIR = $build__output_bin_dir
+        BIN = $bin
+
+        # user options
+        CONFIGURE = $configure__args
+
+        # phonies
+        $phonies
+
+        # build rules
+        $rules
+
+        END
+}
+
+sub output__progress
+{
+    my ($action) = @_;
+    for ($action) {
+        m{^\*} and do {
+            &output__progress__action(@_);
+            next;
+        };
+
+        m{^\+} and do {
+            &output__progress__more(@_);
+            next;
+        };
+
+        m{^-} and do {
+            &output__progress__less(@_);
+            next;
+        };
+
+        m{^\#} and do {
+            &output__progress__comment(@_);
+            next;
+        };
+
+        &output__progress__action(@_);
+    }
+}
+
+sub output__progress__with_color
+{
+    my ($color, $suffix, $action, $arg) = @_;
+    die "LOGIC ERROR: color required" unless defined $color;
+    die "LOGIC ERROR: suffix required" unless defined $suffix;
+    die "LOGIC ERROR: action required" unless defined $action;
+    if (defined $arg) {
+        print "$color$action $COLOR_ARG$arg$COLOR_RST$suffix\n";
+    } else {
+        print "$color$action$COLOR_RST$suffix\n";
+    }
+}
+
+sub output__progress__action
+{
+    &output__progress__with_color($COLOR_ACT, '...', @_);
+}
+
+sub output__progress__more
+{
+    &output__progress__with_color($COLOR_MORE, '...', @_);
+}
+
+sub output__progress__less
+{
+    &output__progress__with_color($COLOR_LESS, '...', @_);
+}
+
+sub output__progress__comment
+{
+    &output__progress__with_color($COLOR_COMMENT, '.', @_);
+}
+
+sub output__variable__bool
+{
+    my ($var) = @_;
+    my $val = eval "\$$var";
+    die "LOGIC ERROR: variable \$$var is undefined\n" unless defined $val;
+    for ($var) {
+        s{::}{: }g;
+        s{__}{: }g;
+        s{_}{ }g;
+        s{^[: ]+}{}g;
+        &output__progress("# $_", $val ? 'enabled' : 'disabled');
+    }
+}
+
+&main;
+

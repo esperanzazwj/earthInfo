@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        package="cn.edu.zju.cad.rendering.ss.engine">
+
+    <uses-feature android:glEsVersion="0x00030001" android:required="true"/>
+    <uses-permission android:name="android.permission.WAKE_LOCK"/>
+    <uses-permission android:name="android.permission.INTERNET"/>
+
+    <application
+            android:allowBackup="true"
+            android:supportsRtl="false"
+            android:largeHeap="true"
+            android:hasCode="false"
+            android:label="ssEngine"
+            android:theme="@android:style/Theme.Holo.NoActionBar.Fullscreen">
+        <activity
+                android:name="android.app.NativeActivity"
+                android:configChanges="orientation|keyboardHidden">
+            <meta-data android:name="android.app.lib_name" android:value="bootstrap"/>
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>
+

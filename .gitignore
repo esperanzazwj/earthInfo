@@ -1,0 +1,7 @@
+# Hidden Files
+.*
+!.git?*
+!.editorconfig
+
+# Compiler Artifacts
+/build/

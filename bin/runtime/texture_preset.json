@@ -1,0 +1,104 @@
+{
+	"Texture_Presets":{
+		"1":{
+		        "preset_name":"RT_color",
+		        "type":"2D",
+		        "format":"RGBA",
+		        "sampler":"ClampPoint"
+
+		    },
+		"7":{
+		        "preset_name":"RT_color_uint",
+		        "type":"2D",
+		        "format":"RGBA16UI",
+		        "sampler":"ClampPoint"
+
+		    },
+		"8":{
+		        "preset_name":"RT_color_uint32",
+		        "type":"2D",
+		        "format":"RG32UI",
+		        "sampler":"ClampPoint"
+
+		    },		    
+		"2":{
+		        "preset_name":"RT_depth",
+		        "type":"2D",
+		        "format":"Depth24",
+
+		         "sampler":"ClampPoint"
+		    },
+		"3":{
+		        "preset_name":"RT_color_float",
+		        "type":"2D",
+		        "format":"RGBA32F",
+		        "sampler":"ClampPoint"
+
+		    },
+		"4":{
+		        "preset_name":"image_noise_repeat",
+		        "type":"2D",
+		        "format":"RGBA32F",
+		        "sampler":"RepeatPoint",
+		         "mipmap_mode":"none"
+
+		    },
+		"5":{
+		        "preset_name":"RT_color_linear",
+		        "type":"2D",
+		        "format":"RGBA",
+		        "sampler":"RepeatLinear"
+
+		    },
+		"6":{
+				"preset_name":"RT_CubeMap",
+		        "type":"Cube",
+		        "format":"RGBA",
+		        "sampler":"ClampPoint"
+
+		    },
+		"9":{
+				"preset_name":"RT_DepthArray",
+		        "type":"2DArray",
+		        "format":"Depth32",
+		        "sampler":"ClampPoint"
+
+		    },
+		"10":{
+				"preset_name":"RT_ColorArray",
+		        "type":"2DArray",
+		        "format":"RGBA",
+		        "sampler":"ClampPoint"
+
+			},
+		"11":{
+		        "preset_name":"RT_color_float_linear",
+		        "type":"2D",
+		        "format":"RGBA32F",
+		        "sampler":"RepeatLinearMipLinear",
+				"mipmap_mode":"auto"
+		    },
+		"12":{
+				"preset_name":"RT_Mask",
+		        "type":"2D",
+		        "format":"R32UI",
+		        "sampler":"ClampPoint"
+
+			},
+		"13":{
+		        "preset_name":"RT_color_uint_RGBA32",
+		        "type":"2D",
+		        "format":"RGBA32UI",
+		        "sampler":"ClampPoint"
+
+		    },
+		"14":{
+		        "preset_name":"RT_color_uint_RGBA8",
+		        "type":"2D",
+		        "format":"RGBA8UI",
+		        "sampler":"ClampPoint"
+
+		    }
+
+		}
+}

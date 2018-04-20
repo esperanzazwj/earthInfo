@@ -1,0 +1,14 @@
+{
+    "root": {
+        "objects": [
+            {
+                "name":"globe",
+                "path":"model/earth/earth.obj",
+                "scale": "0.01,0.01,0.01",
+                "trans":"0,0,0",
+                "effects":[]
+            }
+        ]
+    }
+}
+

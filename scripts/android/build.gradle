@@ -1,0 +1,60 @@
+apply plugin: "com.android.application"
+
+def root = "../.."
+
+buildscript {
+    repositories {
+        google()
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:3.0.1'
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        jcenter()
+    }
+}
+
+android {
+    compileSdkVersion 27
+
+    defaultConfig {
+        applicationId 'cn.edu.zju.cad.rendering.ss.engine'
+        minSdkVersion 23    // support for runtime permission model: https://android-developers.googleblog.com/2015/08/building-better-apps-with-runtime.html
+        targetSdkVersion 27
+        ndk {
+            abiFilters 'armeabi-v7a'
+        }
+        externalNativeBuild {
+            cmake {
+                arguments(
+                    "-DANDROID_CPP_FEATURES=rtti exceptions",
+                    "-DCMAKE_CXX_FLAGS_DEBUG=-O3",
+                    "-DANDROID_STL=c++_shared",
+                )
+            }
+        }
+    }
+
+    externalNativeBuild {
+        cmake {
+            path "CMakeLists.txt"
+        }
+    }
+
+    sourceSets {
+        main {
+            manifest.srcFile 'manifest.xml'
+            jniLibs.srcDirs = ["$root/bin/android"]
+            assets.srcDirs = ["$root/bin/runtime"]
+        }
+    }
+}
+
+dependencies {
+}
+

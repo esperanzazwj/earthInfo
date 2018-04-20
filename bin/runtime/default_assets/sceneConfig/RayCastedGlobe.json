@@ -1,0 +1,14 @@
+{
+    "root": {
+        "objects": [
+            {
+                "name":"globe",
+                "path":"model/earth_plane/ScreenQuad.obj",
+                "scale": "1,1,1",
+                "trans":"0,0,0",
+                "effects":[]
+            }
+        ]
+    }
+}
+

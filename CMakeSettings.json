@@ -1,0 +1,54 @@
+{
+    // See https://go.microsoft.com//fwlink//?linkid=834763 for more information about this file.
+
+    "configurations": [
+        {
+            "name": "Windows (Release + PDB)",
+            "generator": "Ninja",
+            "configurationType": "RelWithDebInfo",
+            "inheritEnvironments": [ "msvc_x64_x64" ],
+            "buildRoot": "${projectDir}\\build\\windows\\${name}",
+            "installRoot": "${projectDir}\\bin",
+            "cmakeCommandArgs": "",
+            "buildCommandArgs": "-v",
+            "ctestCommandArgs": ""
+        },
+        {
+            "name": "Windows (Debug)",
+            "generator": "Ninja",
+            "configurationType": "Debug",
+            "inheritEnvironments": [ "msvc_x64_x64" ],
+            "buildRoot": "${projectDir}\\build\\windows\\${name}",
+            "installRoot": "${projectDir}\\bin",
+            "cmakeCommandArgs": "",
+            "buildCommandArgs": "-v",
+            "ctestCommandArgs": ""
+        },
+        {
+            "name": "Web (Release)",
+            "generator": "Ninja",
+            "configurationType": "Release",
+            "inheritEnvironments": [ "msvc_x64_x64" ], // XXX: Workaround for VS refusing to configure
+            "buildRoot": "${projectDir}\\build\\windows\\${name}",
+            "installRoot": "${projectDir}\\bin",
+            "cmakeCommandArgs": "",
+            "buildCommandArgs": "-v",
+            "ctestCommandArgs": "",
+            "variables": [
+                {
+                    "name": "CMAKE_TOOLCHAIN_FILE",
+                    "value": "${env.EMSCRIPTEN}\\cmake\\Modules\\Platform\\Emscripten.cmake"
+                },
+                {
+                    "name": "CMAKE_C_COMPILER",
+                    "value": "${env.EMSCRIPTEN}\\emcc.bat"
+                },
+                {
+                    "name": "CMAKE_CXX_COMPILER",
+                    "value": "${env.EMSCRIPTEN}\\em++.bat"
+                }
+            ]
+        }
+        // TODO: "Emscripten (Release + Sourcemap)"
+    ]
+}

@@ -1,0 +1,9 @@
+*
+!.git?*
+!/runtime/
+!/runtime/**
+!/android/
+!/android/**
+!*.dll
+!*.so
+
