@@ -32,7 +32,7 @@ public:
     RenderTarget * renderwindow;
     Camera* camera;
     Camera* lightCamera;
-    CameraFPS cam_ctrl;
+    //CameraFPS cam_ctrl;
 
     virtual void Init() = 0;
     virtual void Render() {}
@@ -48,7 +48,7 @@ public:
         InitDevice();
         CreateScene();
         InitPipeline();
-        cam_ctrl.Init(camera);
+        //cam_ctrl.Init(camera);
     }
 
     void loadModels() {

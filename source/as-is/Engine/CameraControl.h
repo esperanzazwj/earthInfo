@@ -7,6 +7,7 @@
 #include <iostream>
 #include <functional>
 #include "../../oceanInfo/Camera/worldCamera.h"
+
 //#include <windows.h>
 using namespace HW;
 using namespace std;
@@ -141,6 +142,7 @@ public:
 
 class GlobeInteractive
 {
+public:
 	bool enableRotation;
 	bool firstMove;
 	double RotateSpeed;
@@ -160,6 +162,7 @@ class GlobeInteractive
         int mouse_button_right_state;
         double xpos, ypos;
     } mouse_event;
+public:
     VirtualGlobeScene::MomentumCamera *camera;
     Ellipsoid *earthshape;
 public:
@@ -174,7 +177,7 @@ public:
     {
         auto& ctx = ss::Window_System::current().context();
         mouse_event.mouse_button_left_state = glfwGetMouseButton(ctx, GLFW_MOUSE_BUTTON_LEFT);
-        mouse_event.mouse_button_right_state = glfwGetMouseButton(ctx, GLFW_MOUSE_BUTTON_LEFT);
+        mouse_event.mouse_button_right_state = glfwGetMouseButton(ctx, GLFW_MOUSE_BUTTON_RIGHT);
         glfwGetCursorPos(ctx, &mouse_event.xpos, &mouse_event.ypos);
        // cout << mouse_event.xpos << " "<<mouse_event.ypos<<endl;
     }
@@ -278,6 +281,7 @@ public:
         //cout << "b_trackball " << (camera->b_trackball()) << endl;
         if (camera->csys() == VirtualGlobeScene::CoordinateSystem::GLOBAL && !camera->b_trackball())
         {
+            cout << "GLOBAL, not trackball" << endl;
             //[NOTE] normalize do NOT modify itself
             int flag = 0;
             int diff;
@@ -419,11 +423,12 @@ public:
         //  speed = sqrt((float)(dx*dx + dy * dy)) * 1000.0f / (curtime - lasttime);  // pixels per second
         //lasttime = curtime;
         speed = sqrt((float)(dx*dx + dy * dy)) * 1000.0f / frametime;
-        if ((mouse_event.mouse_button_left_state== GLFW_PRESS || mouse_event.mouse_button_right_state== GLFW_PRESS)
+        if ((mouse_event.mouse_button_left_state == GLFW_PRESS || mouse_event.mouse_button_right_state == GLFW_PRESS)
             && (dx*dx + dy * dy > 9))  // dist > 3 pixels
             dragging = true;
-        if (mouse_event.mouse_button_left_state==GLFW_PRESS && mouse_event.mouse_button_right_state!= GLFW_PRESS)
+        if (mouse_event.mouse_button_left_state == GLFW_PRESS && mouse_event.mouse_button_right_state != GLFW_PRESS)
         {
+            cout << "Global, trackball, left/not right" << endl;
             float scale = std::max<float>(1.0f, (speed / 3000.0));
             double prelat, prelog;
             bool prehit = camera->pickingRayIntersection(lastpos.x, height() - lastpos.y - 1,
@@ -507,8 +512,9 @@ public:
                 camera->pan(deltaLat * moving_scale, deltaLon * moving_scale);
             }
         }
-        else if (mouse_event.mouse_button_right_state== GLFW_PRESS && !mouse_event.mouse_button_left_state!= GLFW_PRESS)
+        else if (mouse_event.mouse_button_right_state == GLFW_PRESS && mouse_event.mouse_button_left_state != GLFW_PRESS)
         {
+            cout << "Global, trackball, not left/right" << endl;
             float dxn = (float)dx / width();
             float dyn = (float)dy / height();
             cout << dxn << " " << dyn << endl;
@@ -531,4 +537,5 @@ public:
         return 1024.0f;
     }
 };
+
 

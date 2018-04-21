@@ -4,17 +4,18 @@
 #include <vector>
 #include "../../oceanInfo/Camera/worldCamera.h"
 #include "../CameraControl.h"
-
+//#include "../../app/Globe.h"
 using namespace HW;
 
 struct RayCastedGlobeEffect : PipelineEffect
 {
 public:
-	RayCastedGlobeEffect(VirtualGlobeScene::MomentumCamera *main_camera=NULL, Ellipsoid *earthshape=NULL, float earthRadius=0)
-		:main_camera(main_camera), earthshape(earthshape), earthRadius(earthRadius)
+    RayCastedGlobeEffect(VirtualGlobeScene::MomentumCamera *main_camera = NULL, Ellipsoid *earthshape = NULL, float earthRadius = 0, GlobeInteractive *globeInteractive = NULL)
+		:main_camera(main_camera), earthshape(earthshape), earthRadius(earthRadius), globeInteractive(globeInteractive)
     {
         this->name = "RayCastedGlobe";
-        globeInteractive = new GlobeInteractive(main_camera, earthshape);
+        //globeInteractive = new GlobeInteractive(main_camera, earthshape);// app::globeInteractive;
+        assert(globeInteractive != NULL);
     }
 	~RayCastedGlobeEffect()
     {
@@ -55,8 +56,9 @@ private:
 struct GlobePipeline: Pipeline
 {
 public:
-	GlobePipeline(VirtualGlobeScene::MomentumCamera *main_camera=NULL, Ellipsoid *earthshape=NULL, float earthRadius=0)
-		:main_camera(main_camera), earthshape(earthshape), earthRadius(earthRadius), fx_main(NULL), fx_main_raycasted(NULL)
+    GlobePipeline(VirtualGlobeScene::MomentumCamera *main_camera = NULL, Ellipsoid *earthshape = NULL, float earthRadius = 0, GlobeInteractive *globeInteractive = NULL)
+        :main_camera(main_camera), earthshape(earthshape), earthRadius(earthRadius),
+        globeInteractive(globeInteractive), fx_main(NULL), fx_main_raycasted(NULL)
     {}
 	virtual void Init();
 	virtual void Render();
@@ -66,5 +68,6 @@ private:
 	float earthRadius;
 	VirtualGlobeScene::MomentumCamera *main_camera;
     Ellipsoid *earthshape;
+    GlobeInteractive * globeInteractive;
 };
 

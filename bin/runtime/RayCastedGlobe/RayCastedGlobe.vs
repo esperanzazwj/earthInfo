@@ -1,12 +1,13 @@
-layout (location = 0) in vec3 vPosition;
-layout (location = 1) in vec3 vNormal;
-layout (location = 2) in vec2 vTexcoord;
-
+layout(location = 0) in vec4 position;
+uniform vec3 u_rte;
 out vec3 worldPosition;
-out vec2 texcoord;
+uniform mat4 og_modelViewPerspectiveMatrix;
+
 void main()                     
 {
-	gl_Position=vec4(vPosition.xy,0.0,1.0);
-	worldPosition=vPosition;
-    texcoord=vTexcoord;
+    vec4 pos;
+    pos.xyz = position.xyz - u_rte;
+    pos.w = 1;
+    gl_Position = og_modelViewPerspectiveMatrix * pos; 
+    worldPosition = position.xyz;
 }
