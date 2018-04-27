@@ -26,6 +26,11 @@ namespace app
         float earthRadius;
         VirtualGlobeCore::Ellipsoid *earthshape; // 地球数学模型
         VirtualGlobeScene::MomentumCamera *main_camera; // 主相机
+        RenderTarget * basic_buffer;
+
+        SceneManager * scene_weather;
+
+        Globe() :earthRadius(0), earthshape(NULL), main_camera(NULL), basic_buffer(NULL) {}
 
         void Init()
         {
@@ -38,13 +43,20 @@ namespace app
             earthshape = new VirtualGlobeCore::Ellipsoid(earthRadius, earthRadius, earthRadius);//should release
             main_camera = new VirtualGlobeScene::MomentumCamera(earthshape);//should release
             main_camera->set_viewport(vec4i(0, 0, w, h));
-            //camera controller
-            app::globeInteractive = new GlobeInteractive(main_camera, earthshape);
 
             InitWrapper();
 
+            basic_buffer = RenderTargetManager::getInstance().CreateRenderTargetFromPreset("basic", "basic_buffer");
+            basic_buffer->createInternalRes();
+
+            //camera controller
+            app::globeInteractive = new GlobeInteractive(w, h, main_camera, earthshape);
+
+
             auto& ctx = ss::Window_System::current().context();
             glfwSetScrollCallback(ctx, app::scrollMoveEvent);
+
+            InitPipeline();
         }
 
         void InitPipeline()
@@ -62,9 +74,13 @@ namespace app
         void CreateScene()
         {
             scene = new OctreeSceneManager("scene1", render);
-            SceneContainer::getInstance().add(scene);
+            scene_weather= new OctreeSceneManager("scene_weather", render);
 
-			Vector3 cameraEye = Vector3(6378137.0 * 3, 0, 0);
+            SceneContainer::getInstance().add(scene);
+            SceneContainer::getInstance().add(scene_weather);
+
+            //obsolete
+			Vector3 cameraEye = Vector3(earthRadius * 3, 0, 0);
 			Vector3 camera_direction = Vector3(-1, 0, 0);
 			Vector3 camera_up = Vector3(0, 0, 1);
             camera = scene->CreateCamera("main");
@@ -81,6 +97,7 @@ namespace app
         void loadRayCastedModels()
         {
             scene->LoadSceneFromConfig("model/earth_plane/RayCastedGlobe.json");
+            scene_weather->LoadSceneFromConfig("model/earth_plane/plane_scene.json");
         }
 
         void UpdateGUI()
@@ -98,8 +115,9 @@ namespace app
                 double lat = degrees(pos.getLatitude());
                 double hei = pos._height;
                // ImGui::Begin("Geometry Information");
-                auto& io = ImGui::GetIO();
+                //auto& io = ImGui::GetIO();
                 ImGui::Text("Longitude: %.2lf, Latitude: %.2lf, Height: %.2lf km", log, lat, hei/1000.0f);
+				ImGui::Text("Clicked Position->Longitude: %.2lf, Latitude: %.2lf", degrees(globeInteractive->clicked_longtitude), degrees(globeInteractive->clicked_latitude));
                // ImGui::End();
             }
             ImGui::End();

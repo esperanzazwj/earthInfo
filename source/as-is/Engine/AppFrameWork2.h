@@ -47,7 +47,7 @@ public:
     {
         InitDevice();
         CreateScene();
-        InitPipeline();
+       // InitPipeline();
         //cam_ctrl.Init(camera);
     }
 
@@ -120,7 +120,7 @@ public:
         renderwindow = new EGLRenderWindow("MainWindow", render);
         auto& rtm = RenderTargetManager::getInstance();
         rtm.add(renderwindow);
-
+		
         //get ScreenQuad
         meshMgr->loadMesh_assimp_check("screenquad", "default_assets/ScreenQuad.obj");
     }

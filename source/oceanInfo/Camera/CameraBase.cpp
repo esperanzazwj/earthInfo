@@ -2,6 +2,7 @@
 #include "../math/mat4.h"
 #include "GL/glew.h"
 #include <iostream>
+#pragma comment(lib, "glu32.lib")
 
 //#include "SDL.h"
 //#include "ork/render/FrameBuffer.h"
@@ -572,34 +573,33 @@ namespace VirtualGlobeScene
 
 	vec3d CameraBase::unproject(const vec3d& v)
 	{
-        std::cout << "Fatal Error: Funtion CameraBase::unproject is not implemented!" << std::endl;
-        return vec3d(0,0,0);
+        //std::cout << "Fatal Error: Funtion CameraBase::unproject is not implemented!" << std::endl;
 
-		//mat4d worldToCamera = m_view_matrix_.cast<double>().transpose();
-		//mat4d cameraToScreen = m_absolute_projection_matrix_.cast<double>().transpose();
-		//GLint vp[4];
-		//vp[0] = 0;
-		//vp[1] =0;
-		//vp[2] = viewport_.z;
-		//vp[3] = viewport_.w;
-		//double hitPoint[3];
-		//gluUnProject(v.x,v.y,v.z,worldToCamera.coefficients(),
-		//			cameraToScreen.coefficients(),vp,&hitPoint[0],
-		//			&hitPoint[1],&hitPoint[2]);
-		//vec3d worldPos(hitPoint[0], hitPoint[1], hitPoint[2]);
-		///*vec4d posscreen = vec4d(v.x / viewport_.z * 2 -1, v.y / viewport_.w * 2 -1, v.z, 1.0);
-		//vec4d posworld = m_view_matrix_.cast<double>().inverse() * m_absolute_projection_matrix_.cast<double>().inverse() * posscreen;
-		//posworld /= posworld.w;
-		//vec3d worldPos = posworld.xyz();*/
-		//if(csys_ == CoordinateSystem::GLOBAL)
-		//{
-		//	worldPos += reference_center_;
-		//}
-		//else
-		//{
-		//	worldPos = local_local2world_*worldPos;
-		//}
-		//return worldPos;
+		mat4d worldToCamera = m_view_matrix_.cast<double>().transpose();
+		mat4d cameraToScreen = m_absolute_projection_matrix_.cast<double>().transpose();
+		GLint vp[4];
+		vp[0] = 0;
+		vp[1] =0;
+		vp[2] = viewport_.z;
+		vp[3] = viewport_.w;
+		double hitPoint[3];
+		gluUnProject(v.x,v.y,v.z,worldToCamera.coefficients(),
+					cameraToScreen.coefficients(),vp,&hitPoint[0],
+					&hitPoint[1],&hitPoint[2]);
+		vec3d worldPos(hitPoint[0], hitPoint[1], hitPoint[2]);
+		/*vec4d posscreen = vec4d(v.x / viewport_.z * 2 -1, v.y / viewport_.w * 2 -1, v.z, 1.0);
+		vec4d posworld = m_view_matrix_.cast<double>().inverse() * m_absolute_projection_matrix_.cast<double>().inverse() * posscreen;
+		posworld /= posworld.w;
+		vec3d worldPos = posworld.xyz();*/
+		if(csys_ == CoordinateSystem::GLOBAL)
+		{
+			worldPos += reference_center_;
+		}
+		else
+		{
+			worldPos = local_local2world_*worldPos;
+		}
+		return worldPos;
  	}
 
 	vec3d CameraBase::getDir()
@@ -627,9 +627,13 @@ namespace VirtualGlobeScene
 	bool CameraBase::pickingRayIntersection(int screenx, int screeny, 
 											double &latitude, double &longitude) // screenxy为整个窗口以左下角为0，0的坐标
 	{
+
+		//std::cout << "Unfinished" << std::endl;
 		vec3d point;
 		//fb->setReadBuffer(DEPTH);
 		float data = 1.0f;
+		glReadPixels(screenx, screeny, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &data);
+
 		//fb->readPixels(screenx,screeny,1,1,
 		//				DEPTH_COMPONENT,PixelType::FLOAT,Buffer::Parameters(),
 		//				CPUBuffer(&data));

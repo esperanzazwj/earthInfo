@@ -2,8 +2,8 @@
     "root": {
         "objects": [
             {
-                "name":"raycastedglobe",
-                "path":"model/earth_plane/cubewgs84.obj",
+                "name":"testplane",
+                "path":"model/earth_plane/ScreenQuad.obj",
                 "scale": "1,1,1",
                 "trans":"0,0,0",
                 "effects":[]

@@ -148,7 +148,7 @@ public:
 	double RotateSpeed;
 
     //DWORD lasttime;
-    Vector2 mmpos, lastpos;
+    Vector2 mppos, lastpos;
     bool dragging;
     bool mouse_moved;
     bool mouse_pressed;
@@ -156,22 +156,34 @@ public:
     double move_step;
     double moving_scale;
     VirtualGlobeScene::CameraInfo camera_info;
-    struct mouse_event_struct
-    {
-        int mouse_button_left_state;
-        int mouse_button_right_state;
-        double xpos, ypos;
-    } mouse_event;
+	struct mouse_event_struct
+	{
+		int mouse_button_left_state;
+		int mouse_button_right_state;
+		double xpos, ypos;
+		mouse_event_struct() :mouse_button_left_state(GLFW_RELEASE), mouse_button_right_state(GLFW_RELEASE),
+			xpos(0), ypos(0) {}
+	} mouse_event;
+	double clicked_longtitude, clicked_latitude;
+    double target_longtitude, target_latitude;
+    bool placeObj;
+
+    bool left_mouse_pressed, right_mouse_pressed;
+    bool left_mouse_just_release, right_mouse_just_release;
 public:
     VirtualGlobeScene::MomentumCamera *camera;
     Ellipsoid *earthshape;
+	RenderTarget *renderTarget;
+    int w, h;
 public:
-	GlobeInteractive(VirtualGlobeScene::MomentumCamera *camera=NULL, Ellipsoid *earthshape=NULL)
-        :camera(camera), earthshape(earthshape), enableRotation(false), firstMove(false), RotateSpeed(100)
+	GlobeInteractive(int w, int h, VirtualGlobeScene::MomentumCamera *camera = NULL, Ellipsoid *earthshape = NULL)
+		:w(w), h(h), camera(camera), earthshape(earthshape),
+		enableRotation(false), firstMove(false), RotateSpeed(100), mppos(0, 0), lastpos(0, 0),
+		dragging(false),mouse_moved(false),mouse_pressed(false), moveSpeed(100), move_step(100), moving_scale(1),
+		camera_info(), mouse_event(), clicked_longtitude(0), clicked_latitude(0), target_longtitude(0), target_latitude(0),
+        placeObj(false), left_mouse_pressed(false), right_mouse_pressed(false), left_mouse_just_release(false), right_mouse_just_release(false)
 	{
-        moveSpeed = 100;
-        move_step = 100;
-        moving_scale = 1.0;
+
 	}
     void getMoustEvent()
     {
@@ -179,7 +191,6 @@ public:
         mouse_event.mouse_button_left_state = glfwGetMouseButton(ctx, GLFW_MOUSE_BUTTON_LEFT);
         mouse_event.mouse_button_right_state = glfwGetMouseButton(ctx, GLFW_MOUSE_BUTTON_RIGHT);
         glfwGetCursorPos(ctx, &mouse_event.xpos, &mouse_event.ypos);
-       // cout << mouse_event.xpos << " "<<mouse_event.ypos<<endl;
     }
 	void perFrameInteractive()
 	{
@@ -197,13 +208,15 @@ public:
 		if (glfwGetKey(ctx, GLFW_KEY_S) == GLFW_PRESS) {
 			camera->zoomStepped(-d);
 		}
+        if (glfwGetKey(ctx, GLFW_KEY_X) == GLFW_PRESS) {
+            placeObj = true;
+        }
 	}
 	void rotateGlobe(VirtualGlobeScene::MomentumCamera *camera)
 	{
         getMoustEvent();
         processMousePressEvent();
         processMouseMoveEvent();
-
 	}
     void processMousePressEvent()
     {
@@ -215,50 +228,89 @@ public:
             if (action_plugin->is_action_handled())
                 return;
         }*/
-
-        if (mouse_event.mouse_button_left_state == GLFW_PRESS || mouse_event.mouse_button_right_state == GLFW_PRESS)
+        if (true)
+        {
+            if (mouse_event.mouse_button_left_state == GLFW_PRESS && left_mouse_pressed == false)
+            {
+                dragging = false;
+                left_mouse_pressed = true; left_mouse_just_release = false;
+                mppos.x = lastpos.x = mouse_event.xpos;
+                mppos.y = lastpos.y = mouse_event.ypos;
+               // cout << "left mouse just pressed" << endl;
+            }
+            if (mouse_event.mouse_button_right_state == GLFW_PRESS && right_mouse_pressed == false)
+            {
+                dragging = false;
+                right_mouse_pressed = true; right_mouse_just_release = false;
+                mppos.x = lastpos.x = mouse_event.xpos;
+                mppos.y = lastpos.y = mouse_event.ypos;
+            }
+            if (mouse_event.mouse_button_left_state == GLFW_PRESS && left_mouse_pressed == true)
+            {
+                // mppos.x = lastpos.x = mouse_event.xpos;
+                 //mppos.y = lastpos.y = mouse_event.ypos;
+               // cout << "left mouse keep pressed" << endl;
+            }
+            if (mouse_event.mouse_button_right_state == GLFW_PRESS && right_mouse_pressed == true)
+            {
+                // mppos.x = lastpos.x = mouse_event.xpos;
+                // mppos.y = lastpos.y = mouse_event.ypos;
+            }
+            if (mouse_event.mouse_button_left_state == GLFW_RELEASE && left_mouse_pressed == false)
+            {
+                // cout << "left mouse keep released" << endl;
+                left_mouse_just_release = false;
+               // dragging = false;
+            }
+            if (mouse_event.mouse_button_right_state == GLFW_RELEASE && right_mouse_pressed == false)
+            {
+                right_mouse_just_release = false;
+               // dragging = false;
+            }
+            if (mouse_event.mouse_button_left_state == GLFW_RELEASE && left_mouse_pressed == true)
+            {
+                //cout << "left mouse just released" << endl;
+                left_mouse_pressed = false;
+                left_mouse_just_release = true;
+            }
+            if (mouse_event.mouse_button_right_state == GLFW_RELEASE && right_mouse_pressed == true)
+            {
+                right_mouse_pressed = false;
+                right_mouse_just_release = true;
+            }   
+        }
+        /*if (mouse_event.mouse_button_left_state == GLFW_PRESS || mouse_event.mouse_button_right_state == GLFW_PRESS)
         {
             if (mouse_pressed == false)
             {
-                mmpos.x = lastpos.x = mouse_event.xpos;
-                mmpos.y = lastpos.y = mouse_event.ypos;
-                //camera->set_camera_has_momentum(false);
+                mppos.x = lastpos.x = mouse_event.xpos;
+                mppos.y = lastpos.y = mouse_event.ypos;
+                camera->set_camera_has_momentum(false);
             }
             mouse_pressed = true;
         }
         else
         {
             mouse_pressed = false;
+        }*/
+
+        if (left_mouse_just_release && !dragging)
+        {
+            double lat, log;
+            if (camera->pickingRayIntersection(lastpos.x, height() - lastpos.y - 1, lat, log))
+            {
+                camera->pointGoto(lat, log);
+            }
+            clicked_longtitude = log;
+            clicked_latitude = lat;
+            if (!placeObj)
+            {
+                target_longtitude = clicked_longtitude;
+                target_latitude = clicked_latitude;
+            }
+            cout << "(lat, log)->" << degrees(lat) << "," << degrees(log) << endl;
         }
-        
-
-
-        //Geodetic3D point;
-        //double log, lat;
-        //if (true) {
-        //    scene_manager_->main_framebuffer->setReadBuffer(DEPTH);
-        //    float data = 1.0f;
-        //    scene_manager_->main_framebuffer->readPixels(_mppos.x, height() - _mppos.y - 1, 1, 1,
-        //        DEPTH_COMPONENT, VirtualGlobeRender::FLOAT,
-        //        Buffer::Parameters(), CPUBuffer(&data));
-        //    if (data <= 0.999999f)
-        //    {
-        //        Geodetic3D point = scene_manager_->earthshape->ToGeodetic3D(camera_->unproject(vec3d(_mppos.x,
-        //            height() - _mppos.y - 1, data)));
-        //        double longitude = degrees(point.getLongitude());
-        //        double latitude = degrees(point.getLatitude());
-        //        if (ui_view_) {
-        //            // Update click-point info on UI
-        //            QJsonObject request;
-        //            request["from"] = QSLit("#platform");
-        //            request["type"] = QSLit("UpdateClickPoint");
-        //            request["longitude"] = longitude;
-        //            request["latitude"] = latitude;
-        //            ui_view_->SendJsRequest(ToJson(request));
-        //        }
-        //    }
-        //}
-
+      
         //[IGN] plugin actived and take control
         //      send mousePressEvent to plugin
         /*if (evt->button() == Qt::LeftButton) _lbtn = true;
@@ -281,7 +333,7 @@ public:
         //cout << "b_trackball " << (camera->b_trackball()) << endl;
         if (camera->csys() == VirtualGlobeScene::CoordinateSystem::GLOBAL && !camera->b_trackball())
         {
-            cout << "GLOBAL, not trackball" << endl;
+            //cout << "GLOBAL, not trackball" << endl;
             //[NOTE] normalize do NOT modify itself
             int flag = 0;
             int diff;
@@ -294,8 +346,8 @@ public:
             camera_info.firstview_offset = vec3d(0.0f, 0.0f, 0.0f);
 
             float scale = (fabs(camera->altitude())) / 500;
-            scale = scale<1.0 ? 1.0 : scale;
-            scale = scale>10000.0 ? 10000.0 : scale;
+			scale = scale < 1.0 ? 1.0 : scale;
+			scale = scale > 10000.0 ? 10000.0 : scale;
             if (mouse_event.mouse_button_left_state== GLFW_PRESS && mouse_event.mouse_button_right_state!= GLFW_PRESS)
             {
                 diff = lastpos.x - mouse_event.xpos;
@@ -425,7 +477,9 @@ public:
         speed = sqrt((float)(dx*dx + dy * dy)) * 1000.0f / frametime;
         if ((mouse_event.mouse_button_left_state == GLFW_PRESS || mouse_event.mouse_button_right_state == GLFW_PRESS)
             && (dx*dx + dy * dy > 9))  // dist > 3 pixels
+        {
             dragging = true;
+        }
         if (mouse_event.mouse_button_left_state == GLFW_PRESS && mouse_event.mouse_button_right_state != GLFW_PRESS)
         {
             cout << "Global, trackball, left/not right" << endl;
@@ -439,7 +493,7 @@ public:
             {
                 bool hit = camera->pickingRayIntersection(mouse_event.xpos, height() - mouse_event.ypos - 1, lat,
                     log);
-                if (hit && prehit) {
+                if (hit && prehit && false) {
                     double alti_at = camera->altitudeAboveTerrain();
                     double alti = camera->altitude();
                     double latlimit = -1.0;
@@ -514,7 +568,7 @@ public:
         }
         else if (mouse_event.mouse_button_right_state == GLFW_PRESS && mouse_event.mouse_button_left_state != GLFW_PRESS)
         {
-            cout << "Global, trackball, not left/right" << endl;
+           // cout << "Global, trackball, not left/right" << endl;
             float dxn = (float)dx / width();
             float dyn = (float)dy / height();
             cout << dxn << " " << dyn << endl;
@@ -530,11 +584,11 @@ public:
     }
     float  height()
     {
-        return 756.0f;
+        return h;
     }
     float  width()
     {
-        return 1024.0f;
+        return w;
     }
 };
 

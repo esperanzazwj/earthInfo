@@ -4,7 +4,7 @@
 #include "../mathlib.h"
 #include "../Camera.h"
 #include "../CameraControl.h"
-
+///////////////////////////////////////////////////////////////////////////
 void GlobeEffect::Init()
 {
 	auto& rt_mgr = RenderTargetManager::getInstance();
@@ -35,37 +35,77 @@ void GlobeEffect::GetInputPasses(vector<Pass*>& passes, vector<pair<Pass*, Pass*
 	passes.push_back(globe_pass);
 }
 
-void GlobePipeline::Init()
+///////////////////////////////////////////////////////////////////////////
+void WeatherEffect::Init()
 {
-    //Switch Effect
-    bool loadingOldGlobeEffect = false;
-    if (loadingOldGlobeEffect)
+    auto& rt_mgr = RenderTargetManager::getInstance();
+    auto mainwindow = rt_mgr.get("MainWindow");
+
+    weather_pass = PassManager::getInstance().LoadPass("weather_pass", "RayCastedGlobe/weather_prog.json");
+    weather_pass->renderTarget = mainwindow;
+    weather_pass->mClearState.clearFlag = false;
+}
+
+void WeatherEffect::Update()
+{
+    auto scene = SceneContainer::getInstance().get(in_scenename);
+    auto camera = scene->getCamera(in_cameraname);
+
+    RenderQueue queue;
+    scene->getVisibleRenderQueue_as(camera, queue);
+
+    auto mat4fToMatrix4 = [](mat4f m) {
+        Matrix4 matrix;//transpose
+        for (int i = 0; i < 4; i++)
+        {
+            for (int j = 0; j < 4; j++)
+            {
+                matrix[i][j] = m[j][i];
+            }
+        }
+        return matrix;
+    };
+
+    //set light information
+    auto light_color = Vector3{ 1.0f, 1.0f, 1.0f };
+    auto light_dir = Vector3{ 1.0f, 0.0f, 0.0f };
+    weather_pass->setProgramConstantData("lightDirection", light_dir.ptr(), "vec3", sizeof(Vector3));
+    weather_pass->setProgramConstantData("lightColor", light_color.ptr(), "vec3", sizeof(Vector3));
+
+    //set camera parameters
+    Matrix4 ScaleMatrix= Matrix4::IDENTITY;
+    ScaleMatrix.setScale(Vector3(1000000, 1000000, 1000000));
+
+    Matrix4 TransMatrix = Matrix4::IDENTITY;
+    if (globeInteractive->target_longtitude == 0)
     {
-        fx_main = new GlobeEffect;
-	    fx_main->in_scenename = "scene1";
-	    fx_main->in_cameraname = "main";
-	    fx_main->Init();
-        passGraph.AttachEffect(fx_main);
-        passGraph.PrintGraph();
+        TransMatrix.setTrans(Vector3(main_camera->position().x, main_camera->position().y, main_camera->position().z));
     }
     else
     {
-        fx_main_raycasted = new RayCastedGlobeEffect(main_camera, earthshape, earthRadius, globeInteractive);
-        fx_main_raycasted->in_scenename = "scene1";
-        fx_main_raycasted->in_cameraname = "main";
-        fx_main_raycasted->Init();
-        passGraph.AttachEffect(fx_main_raycasted);
-        passGraph.PrintGraph();
+        Geodetic3D local_pos(globeInteractive->target_longtitude, globeInteractive->target_latitude, earthRadius/10);
+        vec3d world_pos = earthshape->ToVector3D(local_pos);
+        TransMatrix.setTrans(Vector3(world_pos.x, world_pos.y, world_pos.z));
     }
+    Matrix4 worldMatrix = TransMatrix * ScaleMatrix;
+    Matrix4 worldToCamera = mat4fToMatrix4(main_camera->m_view_matrix());
+    Matrix4 cameraToScreen = mat4fToMatrix4(main_camera->m_absolute_projection_matrix());
+    Vector3 cameraEye = Vector3(main_camera->position().x, main_camera->position().y, main_camera->position().z);
+    weather_pass->setProgramConstantData("eyePosition", cameraEye.ptr(), "vec3", sizeof(Vector3));
+    Matrix4 localToScreen = cameraToScreen * worldToCamera;
+    weather_pass->setProgramConstantData("ModelMatrix", worldMatrix.ptr(), "mat4", sizeof(Matrix4));
+    weather_pass->setProgramConstantData("ViewPerspectiveMatrix", localToScreen.ptr(), "mat4", sizeof(Matrix4));
 
-
+    weather_pass->camera = camera;
+    weather_pass->queue = queue;
 }
 
-void GlobePipeline::Render()
+void WeatherEffect::GetInputPasses(vector<Pass*>& passes, vector<pair<Pass*, Pass*>>& /*inputPasses*/, vector<pair<Texture*&, Texture*&>>& inputTexture)
 {
-	passGraph.Update();
-	passGraph.Render();
+    passes.push_back(weather_pass);
 }
+
+///////////////////////////////////////////////////////////////////////////
 
 void RayCastedGlobeEffect::Init()
 {
@@ -93,9 +133,6 @@ void RayCastedGlobeEffect::Update()
         }
         return matrix;
     };
-
-	globeInteractive->perFrameInteractive();
-    main_camera->update();
 
     //set light information
     Vector3 lightDir = Vector3(1, 1, 0);
@@ -144,4 +181,57 @@ void RayCastedGlobeEffect::Update()
 void RayCastedGlobeEffect::GetInputPasses(vector<Pass*>& passes, vector<pair<Pass*, Pass*>>& /*inputPasses*/, vector<pair<Texture*&, Texture*&>>& inputTexture)
 {
     passes.push_back(RayCastedGlobe_pass);
+}
+
+///////////////////////////////////////////////////////////////////////////
+
+void GlobePipeline::Init()
+{
+    //Switch Effect
+    bool loadingOldGlobeEffect = false;
+    if (loadingOldGlobeEffect)
+    {
+        fx_main = new GlobeEffect;
+        fx_main->in_scenename = "scene1";
+        fx_main->in_cameraname = "main";
+        fx_main->Init();
+        passGraph.AttachEffect(fx_main);
+        passGraph.PrintGraph();
+    }
+    else
+    {
+        fx_main_raycasted = new RayCastedGlobeEffect(main_camera, earthshape, earthRadius, globeInteractive);
+        fx_main_raycasted->in_scenename = "scene1";
+        fx_main_raycasted->in_cameraname = "main";
+        fx_main_raycasted->Init();
+        //weather effect
+        weather_effect = new WeatherEffect(main_camera, earthshape, earthRadius, globeInteractive);
+        weather_effect->in_scenename = "scene_weather";
+        weather_effect->in_cameraname = "main";
+        weather_effect->Init();
+        passGraph.AttachEffect(fx_main_raycasted);
+       // passGraph.AttachEffect(weather_effect);
+        passGraph.PrintGraph();
+    }
+}
+
+void GlobePipeline::Render()
+{
+    globeInteractive->perFrameInteractive();
+    main_camera->update();
+    if (globeInteractive->placeObj == true && hasAttachedWeather == false)
+    {
+        std::cout << "attached weather effects" << std::endl;
+        passGraph.AttachEffect(weather_effect);
+        hasAttachedWeather = true;
+    }
+    if (globeInteractive->placeObj == false && hasAttachedWeather == true)
+    {
+        std::cout << "deattached weather effects" << std::endl;
+        passGraph.DetachEffect(weather_effect);
+        hasAttachedWeather = false;
+    }
+
+    passGraph.Update();
+    passGraph.Render();
 }
