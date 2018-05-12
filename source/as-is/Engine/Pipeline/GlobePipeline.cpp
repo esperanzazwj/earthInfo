@@ -38,9 +38,11 @@ void GlobeEffect::GetInputPasses(vector<Pass*>& passes, vector<pair<Pass*, Pass*
 ///////////////////////////////////////////////////////////////////////////
 void WeatherEffect::Init()
 {
+    //where to render(main screen)
     auto& rt_mgr = RenderTargetManager::getInstance();
     auto mainwindow = rt_mgr.get("MainWindow");
 
+    //add shader
     weather_pass = PassManager::getInstance().LoadPass("weather_pass", "RayCastedGlobe/weather_prog.json");
     weather_pass->renderTarget = mainwindow;
     weather_pass->mClearState.clearFlag = false;
@@ -198,8 +200,9 @@ void GlobePipeline::Init()
         passGraph.AttachEffect(fx_main);
         passGraph.PrintGraph();
     }
-    else
+    else //this way
     {
+        //draw the earth
         fx_main_raycasted = new RayCastedGlobeEffect(main_camera, earthshape, earthRadius, globeInteractive);
         fx_main_raycasted->in_scenename = "scene1";
         fx_main_raycasted->in_cameraname = "main";
@@ -217,6 +220,7 @@ void GlobePipeline::Init()
 
 void GlobePipeline::Render()
 {
+    ////////////////////////////////////////////////
     globeInteractive->perFrameInteractive();
     main_camera->update();
     if (globeInteractive->placeObj == true && hasAttachedWeather == false)
@@ -231,7 +235,7 @@ void GlobePipeline::Render()
         passGraph.DetachEffect(weather_effect);
         hasAttachedWeather = false;
     }
-
+    /////////////////////////////////////////////////
     passGraph.Update();
     passGraph.Render();
 }

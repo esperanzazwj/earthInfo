@@ -20,7 +20,7 @@ namespace app
         globe_interactive->camera->zoomStepped(yoffset * globe_interactive->moving_scale * globe_interactive->move_step / scale);
     }
 
-
+    //windows class
     struct Globe: App
     {
         float earthRadius;
@@ -32,19 +32,21 @@ namespace app
 
         Globe() :earthRadius(0), earthshape(NULL), main_camera(NULL), basic_buffer(NULL) {}
 
+        //entry
         void Init()
         {
             name = "globe";
             render = new EGLRenderSystem;
             render->GetWandH(w, h);     // Reset framebuffer size because it may be different than what you set.
             render->Initialize();
-            //initialize
+            //initialize earthshape
             earthRadius = 6378137.0;
             earthshape = new VirtualGlobeCore::Ellipsoid(earthRadius, earthRadius, earthRadius);//should release
+            //main camera
             main_camera = new VirtualGlobeScene::MomentumCamera(earthshape);//should release
             main_camera->set_viewport(vec4i(0, 0, w, h));
 
-            InitWrapper();
+            InitWrapper();//call create_scene
 
             basic_buffer = RenderTargetManager::getInstance().CreateRenderTargetFromPreset("basic", "basic_buffer");
             basic_buffer->createInternalRes();
@@ -56,26 +58,33 @@ namespace app
             auto& ctx = ss::Window_System::current().context();
             glfwSetScrollCallback(ctx, app::scrollMoveEvent);
 
+            //initalize pipeline
             InitPipeline();
         }
 
         void InitPipeline()
         {
+            //Globe pipeline(define how to shade)
             pipeline = new GlobePipeline(main_camera, earthshape, earthRadius, app::globeInteractive);
             pipeline->Init();
         }
 
+        //call this function per frame
         void Render()
         {
             UpdateGUI();
             pipeline->Render();
         }
 
+        //initalized scene(model)
         void CreateScene()
         {
+
+            //create scene manager(not yet load model)
             scene = new OctreeSceneManager("scene1", render);
             scene_weather= new OctreeSceneManager("scene_weather", render);
-
+            
+            //scene manager-->SceneContainer(global)
             SceneContainer::getInstance().add(scene);
             SceneContainer::getInstance().add(scene_weather);
 
@@ -96,6 +105,7 @@ namespace app
 
         void loadRayCastedModels()
         {
+            //use script to load models
             scene->LoadSceneFromConfig("model/earth_plane/RayCastedGlobe.json");
             scene_weather->LoadSceneFromConfig("model/earth_plane/plane_scene.json");
         }
