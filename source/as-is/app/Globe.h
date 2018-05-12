@@ -4,6 +4,9 @@
 #include "../../oceanInfo/Geometry/Ellipsoid.h"
 #include "../../oceanInfo/Camera/worldCamera.h"
 #include "../Engine/CameraControl.h"
+#include "../../fengbaochao/fengbaochao.h"
+#include "../../fengbaochao/Mesh.h"
+#include "../../fengbaochao/Types.h"
 namespace app
 {
 
@@ -29,6 +32,7 @@ namespace app
         RenderTarget * basic_buffer;
 
         SceneManager * scene_weather;
+        FengBaoChao * fbc_;
 
         Globe() :earthRadius(0), earthshape(NULL), main_camera(NULL), basic_buffer(NULL) {}
 
@@ -57,6 +61,14 @@ namespace app
 
             auto& ctx = ss::Window_System::current().context();
             glfwSetScrollCallback(ctx, app::scrollMoveEvent);
+
+            fbc_ = new FengBaoChao(earthshape, main_camera);
+            fbc_->_status = 1;
+            srand((unsigned)time(NULL));
+            fbc_->makePatterns();
+            fbc_->_mesh = new Mesh<P3_C4, int>(VirtualGlobeRender::TRIANGLES, VirtualGlobeRender::GPU_DYNAMIC);
+            fbc_->_mesh->addAttributeType(0, 3, VirtualGlobeRender::A32F, false);
+            fbc_->_mesh->addAttributeType(1, 4, VirtualGlobeRender::A32F, false);
 
             //initalize pipeline
             InitPipeline();

@@ -1,9 +1,9 @@
 #include "fengbaochao.h"
-#include "Util.h"
+//#include "Util.h"
 #include <math.h>
-#include <QObject>
+//#include <QObject>
 
-using namespace oceaninfo::platform;
+//using namespace oceaninfo::platform;
 
 	static bool loadFile(const string &file,double* tar)
 	{
@@ -31,7 +31,7 @@ using namespace oceaninfo::platform;
 		return true;
 	}
 
-	FengBaoChao::FengBaoChao()
+    FengBaoChao::FengBaoChao(Ellipsoid * earthshape, MomentumCamera *mainCamera)
 	{
 		id = -1;
 		_status = 0;
@@ -42,17 +42,19 @@ using namespace oceaninfo::platform;
 		b_cutterMaking = false;
 		tempCol = NULL;
 		b_cut = false;
+        _earthshape = earthshape;
+        _mainCamera = mainCamera;
 	}
 
 	FengBaoChao::~FengBaoChao()
 	{
-		if(NULL != _loaderThread)
-			delete _loaderThread;
-		if(NULL != _loaderMutex)
-			delete _loaderMutex;
+		//if(NULL != _loaderThread)
+		//	delete _loaderThread;
+		//if(NULL != _loaderMutex)
+		//	delete _loaderMutex;
 	}
 
-	//¶ÁÈ¡³õÊ¼Ê±¿ÌÊı¾İ
+	//è¯»å–åˆå§‹æ—¶åˆ»æ•°æ®
 	void FengBaoChao::initializeTestMesh()
 	{
 		switch(_curType)
@@ -79,12 +81,15 @@ using namespace oceaninfo::platform;
 						}
 					}
 				}
-				else { QMessageBox::information(NULL,QStringLiteral("´íÎó"),
-					QStringLiteral("Êı¾İ¶ÁÈ¡´íÎó"));}
+				else
+                {
+                    //QMessageBox::information(NULL,QStringLiteral("é”™è¯¯"),
+                     //   QStringLiteral("æ•°æ®è¯»å–é”™è¯¯"));
+                    cout << "error(data read)" << endl;
+                }
 
 				if (loadFile("VG/taifeng/newVelocity/V10-0.dat",data))
 				{
-
 					int idx =0;
 					for (int y = 0; y < numy; y++)
 					{
@@ -94,21 +99,25 @@ using namespace oceaninfo::platform;
 						}
 					}
 				}
-				else { QMessageBox::information(NULL,QStringLiteral("´íÎó"),
-					QStringLiteral("Êı¾İ¶ÁÈ¡´íÎó"));}
+				else
+                {
+                    //QMessageBox::information(NULL,QStringLiteral("é”™è¯¯"),
+					//    QStringLiteral("æ•°æ®è¯»å–é”™è¯¯"));
+                    cout << "error(data read)" << endl;
+                }
 				delete []data;
-				SDL_LockMutex(_loaderMutex);//Ô¤¶Á5¸ö
+				//SDL_LockMutex(_loaderMutex);//é¢„è¯»5ä¸ª
 				for (int i =1 ;i <6; i++)
 				{
 					_dataPool[i] = NULL;
 				}
-				SDL_UnlockMutex(_loaderMutex);
-				//´Ë´¦ÊÇÎªÁËÈ·¶¨×î´óËÙ¶ÈÖµw£¬ÒÔ±ã½øĞĞÑÕÉ«Ó³Éä
+				//SDL_UnlockMutex(_loaderMutex);
+				//æ­¤å¤„æ˜¯ä¸ºäº†ç¡®å®šæœ€å¤§é€Ÿåº¦å€¼wï¼Œä»¥ä¾¿è¿›è¡Œé¢œè‰²æ˜ å°„
 				//int w = 606;
 				//float sss, kkk;
 				//sss = 0f; kkk = 0f;
 
-				//HSVÄ£ĞÍÑÕÉ«Ó³ÉäÖ®·½Ïò¡¢ËÙ¶È´óĞ¡
+				//HSVæ¨¡å‹é¢œè‰²æ˜ å°„ä¹‹æ–¹å‘ã€é€Ÿåº¦å¤§å°
 				for (int i = 0; i < numx; i++)
 				{
 					for (int j = 0; j < numy; j++)
@@ -126,16 +135,15 @@ using namespace oceaninfo::platform;
 					}
 				}
 
-				//Éú³É»æÖÆË÷ÒıÊı×é
+				//ç”Ÿæˆç»˜åˆ¶ç´¢å¼•æ•°ç»„
 				int js = 0;
 				for (int s = 0; s < 200; s++)
 				{
 					for (int k = 0; k < 300; k++)
 					{
-
 						_mesh->setIndice(js, s * 301 + k + 301);
-						_mesh->setIndice(js +1, s * 301 + k + 1);
-						_mesh->setIndice(js+2,s * 301 + k + 0);
+                        _mesh->setIndice(js + 1, s * 301 + k + 1);
+                        _mesh->setIndice(js + 2, s * 301 + k + 0);
 
 						_mesh->setIndice(js + 3, s * 301 + k + 301);
 						_mesh->setIndice(js + 4, s * 301 + k + 302);
@@ -148,7 +156,7 @@ using namespace oceaninfo::platform;
 		case Temp:
 			{
 				double* data = new double[numx*numy*20];
-				//ÕâÀïÔ­°æ¶ÁÎÄ¼şÅĞ¶ÏµÄÊÇÁíÒ»¸öÎÄ¼şpressure£¬¶ÁµÄÊÇtv£¬Ææ¹Ö
+				//è¿™é‡ŒåŸç‰ˆè¯»æ–‡ä»¶åˆ¤æ–­çš„æ˜¯å¦ä¸€ä¸ªæ–‡ä»¶pressureï¼Œè¯»çš„æ˜¯tvï¼Œå¥‡æ€ª
 				if (loadFile("VG/taifeng/TV.dat",data))
 				{
 					int idx =0;
@@ -161,11 +169,13 @@ using namespace oceaninfo::platform;
 							}
 						}
 				}
-				else { QMessageBox::information(NULL,QStringLiteral("´íÎó"),
-					QStringLiteral("Êı¾İ¶ÁÈ¡´íÎó"));}
+				else { /*QMessageBox::information(NULL,QStringLiteral("é”™è¯¯"),
+					QStringLiteral("æ•°æ®è¯»å–é”™è¯¯"));*/
+                    cout << "error (data read)" << endl;
+                }
 				delete []data;
 
-				//Éú³É»æÖÆË÷ÒıÊı×é
+				//ç”Ÿæˆç»˜åˆ¶ç´¢å¼•æ•°ç»„
 				int js = 0;
 				for (int t=0; t<20; t++)
 				{
@@ -197,10 +207,10 @@ using namespace oceaninfo::platform;
 						for (int y = 0; y < numy; y++)
 						{
 							Geodetic3D llh = Geodetic3D(radians((x - 4) / 10.0f + 110), radians((y - 0) / 10.0f + 15) , 3000*z);
-							vec3d p = render_view_->scene_manager()->earthshape->ToVector3D(llh);
+							vec3d p = _earthshape->ToVector3D(llh);
 							vertexPos[z*numx*numy + y * numx + x] = vec3f(p.x, p.y, p.z);
 
-							//TVËÙ¶È³¡×ÅÉ«Éè¶¨
+							//TVé€Ÿåº¦åœºç€è‰²è®¾å®š
 							if(PData[z][x][y] < 0)// || x < 100)
 							{
 								tempCol[z*numx*numy + y * numx + x]= vec4f(0,0,0,0);
@@ -259,8 +269,10 @@ using namespace oceaninfo::platform;
 						}
 					}
 				}
-				else { QMessageBox::information(NULL,QStringLiteral("´íÎó"),
-					QStringLiteral("Êı¾İ¶ÁÈ¡´íÎó"));}
+				else { /*QMessageBox::information(NULL,QStringLiteral("é”™è¯¯"),
+					QStringLiteral("æ•°æ®è¯»å–é”™è¯¯"));*/
+                    cout << "error(data read)" << endl;
+                }
 				memcpy(PressureData1, PressureData,sizeof(PressureData));
 
 				if (loadIntFile("VG/taifeng/pressure/700-6.dat",data))
@@ -274,17 +286,19 @@ using namespace oceaninfo::platform;
 						}
 					}
 				}
-				else { QMessageBox::information(NULL,QStringLiteral("´íÎó"),
-					QStringLiteral("Êı¾İ¶ÁÈ¡´íÎó"));}
+				else { /*QMessageBox::information(NULL,QStringLiteral("é”™è¯¯"),
+					QStringLiteral("æ•°æ®è¯»å–é”™è¯¯"));*/
+                    cout << "error(data read)" << endl;
+                }
 
 				delete []data;
-				SDL_LockMutex(_loaderMutex);//Ô¤¶Á3¸ö
+				//SDL_LockMutex(_loaderMutex);//é¢„è¯»3ä¸ª
 				for (int i =2 ;i <5; i++)
 				{
 					_dataPool[i*6] = NULL;
 				}
-				SDL_UnlockMutex(_loaderMutex);
-				//Éú³É»æÖÆË÷ÒıÊı×é
+				//SDL_UnlockMutex(_loaderMutex);
+				//ç”Ÿæˆç»˜åˆ¶ç´¢å¼•æ•°ç»„
 				int js = 0;
 				for (int s = 0; s < sizey-1; s++)
 				{
@@ -307,7 +321,7 @@ using namespace oceaninfo::platform;
 			return;
 		}
 	}
-
+   
 	void FengBaoChao::cut()
 	{
 		b_cutterMaking = true;
@@ -316,13 +330,13 @@ using namespace oceaninfo::platform;
 
 	void FengBaoChao::draw()
 	{
-		if(render_view_->getCamera()->csys() == CoordinateSystem::GLOBAL)
+		if(_mainCamera->csys() == CoordinateSystem::GLOBAL)
 			drawContent(0);		
 	}
-
+   
 	void FengBaoChao::drawContent(float timeSinceLastTime)
 	{
-		if (_status == 0)
+	/*	if (_status == 0)
 		{
 			return;
 		}
@@ -354,9 +368,9 @@ using namespace oceaninfo::platform;
 			fb->draw(_program, *_cutmesh);
 			funcFS->set(func);
 		}
-		fb->setBlend(false);
+		fb->setBlend(false);*/
 	}
-
+   
 	void FengBaoChao::drawContentAfterWater(float timeSinceLastTime)
 	{
 		float vx, vy, r; //float dx, dy;
@@ -406,12 +420,12 @@ using namespace oceaninfo::platform;
 			}
 		}
 	}
-
+   
 	void FengBaoChao::filter()
 	{
 		memcpy(vpat, vpat2, sizeof(vpat2));
 	}
-
+ 
 	void FengBaoChao::getDP()
 	{
 		float vx, vy, r; //float dx, dy;
@@ -462,7 +476,7 @@ using namespace oceaninfo::platform;
 		}
 	}
 
-	//HSVÄ£ĞÍ×ª»»ÎªRGB·ÖÁ¿
+	//HSVæ¨¡å‹è½¬æ¢ä¸ºRGBåˆ†é‡
 	void FengBaoChao::HSV2RGB()
 	{
 		for (int i = 0; i < numx; i = i + 1)
@@ -535,11 +549,11 @@ using namespace oceaninfo::platform;
 		_mesh = NULL;
 		_cutmesh = NULL;
 		_program = NULL;
-		_loader_thread = false;
-		SDL_WaitThread(_loaderThread, NULL);
-		_loaderThread = NULL;
-		SDL_DestroyMutex(_loaderMutex);
-		_loaderMutex = NULL;
+		//_loader_thread = false;
+		//SDL_WaitThread(_loaderThread, NULL);
+		//_loaderThread = NULL;
+		//SDL_DestroyMutex(_loaderMutex);
+		//_loaderMutex = NULL;
 		map<int, double*>::iterator it = _dataPool.begin();
 		while (it != _dataPool.end())
 		{
@@ -556,8 +570,8 @@ using namespace oceaninfo::platform;
 		b_cut = false;
 		func = vec4f(0,0,0,0);
 		//mSZWidget->b_pluginTakenControl = false;
-		if(render_view_)
-			render_view_->setActionHandlePlugin(NULL);
+		//if(render_view_)
+		//	render_view_->setActionHandlePlugin(NULL);
 	}
 
 	void FengBaoChao::tran()
@@ -568,14 +582,14 @@ using namespace oceaninfo::platform;
 			{
 				vec3f* vertexPos = new vec3f[numx * numy];
 				vec4f*  vertexCol = new vec4f[numx*numy];
-				//ÔëÉùÈÚºÏ¸üĞÂ
+				//å™ªå£°èåˆæ›´æ–°
 				float ss;
 				getDP();
 				for (int i = 0; i < numx; i++)
 					for (int j = 0; j < numy; j++)
 					{
 						Geodetic3D llh = Geodetic3D(radians((i - 4) / 10.0f + 110), radians((j - 0) / 10.0f + 15) , (double)HData[i][j]);
-						vec3d p = render_view_->scene_manager()->earthshape->ToVector3D(llh);
+						vec3d p = _earthshape->ToVector3D(llh);
 						vertexPos[j * numx + i] = vec3f(p.x, p.y, p.z);
 						ss = 0.9f * vpat1[i][j] + 0.1f * pat[i][j][iframe % 32];
 						//ss = 0.9f * ss + 0.1f * (255 * j / 308 );
@@ -585,7 +599,7 @@ using namespace oceaninfo::platform;
 
 					filter();
 					HSV2RGB();
-					//¶¥µãÑÕÉ«Éè¶¨
+					//é¡¶ç‚¹é¢œè‰²è®¾å®š
 					for (int i = 0; i < numx; i++)
 						for (int j = 0; j < numy; j++)
 						{
@@ -613,7 +627,7 @@ using namespace oceaninfo::platform;
 			{
 				vec3f* vertexPos = new vec3f[sizex * sizey];
 				vec4f*  vertexCol = new vec4f[sizex*sizey];
-				//ÖĞ¼äÊ±¿Ì²åÖµ
+				//ä¸­é—´æ—¶åˆ»æ’å€¼
 				float temp;
 				for (int x = 0; x < sizex; x = x + 1)
 					for (int y = 0; y < sizey; y = y + 1)
@@ -626,7 +640,7 @@ using namespace oceaninfo::platform;
 						for (int j = 0; j < sizey; j++)
 						{
 							Geodetic3D llh = Geodetic3D(radians((j - 154) / 10.0f + 137), radians((i - 140) / 10.0f + 23) , (double)PressureData[i][j]);
-							vec3d p = render_view_->scene_manager()->earthshape->ToVector3D(llh);
+							vec3d p = _earthshape->ToVector3D(llh);
 							vertexPos[j * sizex + i] = vec3f(p.x, p.y, p.z);
 							if(PressureData[i][j] ==0 || PressureData[i][j] %20 >5)
 								vertexCol[j * sizex + i] = vec4f(0,0,0,0);
@@ -682,7 +696,7 @@ using namespace oceaninfo::platform;
 				{
 					num = 0;
 				}
-				SDL_LockMutex(_loaderMutex);//Ô¤¶Á5¸ö
+				//SDL_LockMutex(_loaderMutex);//é¢„è¯»5ä¸ª
 				for (int i =0 ;i <5; i++)
 				{
 					int val = num +i;
@@ -691,7 +705,7 @@ using namespace oceaninfo::platform;
 					if(_dataPool.find(val) == _dataPool.end())
 						_dataPool[val] = NULL;
 				}
-				SDL_UnlockMutex(_loaderMutex);
+				//SDL_UnlockMutex(_loaderMutex);
 
 				map<int, double*>::iterator iter = _dataPool.find(num);
 				if (iter->second)
@@ -715,12 +729,12 @@ using namespace oceaninfo::platform;
 					return;
 				}
 
-				//´Ë´¦ÊÇÎªÁËÈ·¶¨×î´óËÙ¶ÈÖµw£¬ÒÔ±ã½øĞĞÑÕÉ«Ó³Éä
+				//æ­¤å¤„æ˜¯ä¸ºäº†ç¡®å®šæœ€å¤§é€Ÿåº¦å€¼wï¼Œä»¥ä¾¿è¿›è¡Œé¢œè‰²æ˜ å°„
 				//int w = 606;
 				//float sss, kkk;
 				//sss = 0f; kkk = 0f;
 
-				//HSVÄ£ĞÍÑÕÉ«Ó³ÉäÖ®·½Ïò¡¢ËÙ¶È´óĞ¡
+				//HSVæ¨¡å‹é¢œè‰²æ˜ å°„ä¹‹æ–¹å‘ã€é€Ÿåº¦å¤§å°
 				for (int i = 0; i < numx; i++)
 				{
 					for (int j = 0; j < numy; j++)
@@ -751,7 +765,7 @@ using namespace oceaninfo::platform;
 				{
 					num = 0;
 				}
-				SDL_LockMutex(_loaderMutex);//Ô¤¶Á3¸ö
+				SDL_LockMutex(_loaderMutex);//é¢„è¯»3ä¸ª
 				for (int i =0 ;i <3; i++)
 				{
 					int val = num +i*6;
@@ -781,7 +795,7 @@ using namespace oceaninfo::platform;
 		}		
 	}
 
-	//ÔëÉùĞòÁĞÉú³É
+	//å™ªå£°åºåˆ—ç”Ÿæˆ
 	void FengBaoChao::makePatterns()
 	{
 		int lut[256];
@@ -812,7 +826,8 @@ using namespace oceaninfo::platform;
 
 	int FengBaoChao::workThread()
 	{
-		int toLoad[5];
+        cout << "error(call FBC work thread)" << endl;
+		/*int toLoad[5];
 		char pathName[512];
 		char pathName1[512];
 		map<int, double*>::iterator iter;
@@ -844,13 +859,13 @@ using namespace oceaninfo::platform;
 						data = new double[numx* numy*2];
 
 						if (!loadFile(pathName,data)) 
-						{ QMessageBox::information(NULL,QStringLiteral("´íÎó"),
-						QStringLiteral("Êı¾İ¶ÁÈ¡´íÎó"));}
+						{ QMessageBox::information(NULL,QStringLiteral("é”™è¯¯"),
+						QStringLiteral("æ•°æ®è¯»å–é”™è¯¯"));}
 
 						if (!loadFile(pathName1,data+ numx*numy))
 						{ QMessageBox::information(NULL,
-						QStringLiteral("´íÎó"),
-						QStringLiteral("Êı¾İ¶ÁÈ¡´íÎó"));}
+						QStringLiteral("é”™è¯¯"),
+						QStringLiteral("æ•°æ®è¯»å–é”™è¯¯"));}
 					}
 					break;
 				case Press:
@@ -859,8 +874,8 @@ using namespace oceaninfo::platform;
 						data = new double[sizex* sizey];
 
 						if (!loadFile(pathName,data)) 
-						{ QMessageBox::information(NULL,QStringLiteral("´íÎó"),
-						QStringLiteral("Êı¾İ¶ÁÈ¡´íÎó"));}
+						{ QMessageBox::information(NULL,QStringLiteral("é”™è¯¯"),
+						QStringLiteral("æ•°æ®è¯»å–é”™è¯¯"));}
 					}
 					break;
 				default:
@@ -877,5 +892,5 @@ using namespace oceaninfo::platform;
 				SDL_Delay(10);
 			}
 		}
-		return 1;
+		return 1;*/
 	}
