@@ -35,8 +35,10 @@ struct WeatherEffect : PipelineEffect
 	string in_cameraname;
 
 private:
+	//fbcManager *fbcMgr;
 	RenderTarget * rt_out{};
 	Pass* weather_pass{};
+
 	//Camera Controller
 	GlobeInteractive * globeInteractive;
 	VirtualGlobeScene::MomentumCamera *main_camera;

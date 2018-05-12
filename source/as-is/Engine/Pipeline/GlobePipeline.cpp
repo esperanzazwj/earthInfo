@@ -46,6 +46,9 @@ void WeatherEffect::Init()
     weather_pass = PassManager::getInstance().LoadPass("weather_pass", "RayCastedGlobe/weather_prog.json");
     weather_pass->renderTarget = mainwindow;
     weather_pass->mClearState.clearFlag = false;
+
+    //fbcMgr->Init();
+
 }
 
 void WeatherEffect::Update()

@@ -1,8 +1,10 @@
 #include "fengbaochao.h"
 //#include "Util.h"
+#include <iostream>
+#include <fstream>
 #include <math.h>
 //#include <QObject>
-
+using namespace std;
 //using namespace oceaninfo::platform;
 
 	static bool loadFile(const string &file,double* tar)
@@ -548,7 +550,7 @@
 		//setPluginStatus(UNACITVED);		
 		_mesh = NULL;
 		_cutmesh = NULL;
-		_program = NULL;
+		//_program = NULL;
 		//_loader_thread = false;
 		//SDL_WaitThread(_loaderThread, NULL);
 		//_loaderThread = NULL;
@@ -765,7 +767,7 @@
 				{
 					num = 0;
 				}
-				SDL_LockMutex(_loaderMutex);//预读3个
+				//SDL_LockMutex(_loaderMutex);//预读3个
 				for (int i =0 ;i <3; i++)
 				{
 					int val = num +i*6;
@@ -774,7 +776,7 @@
 					if(_dataPool.find(val) == _dataPool.end())
 						_dataPool[val] = NULL;
 				}
-				SDL_UnlockMutex(_loaderMutex);
+				//SDL_UnlockMutex(_loaderMutex);
 				memcpy(PressureData1, PressureData2, sizeof(PressureData2));
 				map<int, double*>::iterator iter = _dataPool.find(num);
 				if (iter->second)
@@ -891,6 +893,6 @@
 			{
 				SDL_Delay(10);
 			}
-		}
-		return 1;*/
+		}*/
+		return 1;
 	}

@@ -30,6 +30,7 @@ using namespace VirtualGlobeCore;
 
 #include <vector>
 #include <list>
+#include <map>
 //#include <QtWidgets/qmessagebox.h>
 //#include "SDL.h"
 
