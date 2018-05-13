@@ -54,6 +54,7 @@ namespace HW
 		BlendState(){}
 		~BlendState(){}
 		BlendState(const BlendState& other);
+		BlendState(bool blendEnable, BlendOperation e, BlendOperand src, BlendOperand dst);
 		BlendState& operator=(const BlendState &other);
 		/// get a system default BlendState instance.
 		static BlendState getDefault();

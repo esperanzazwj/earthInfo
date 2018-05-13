@@ -189,6 +189,30 @@ void RayCastedGlobeEffect::GetInputPasses(vector<Pass*>& passes, vector<pair<Pas
 }
 
 ///////////////////////////////////////////////////////////////////////////
+void fbcEffect::Init()
+{
+    auto& rt_mgr = RenderTargetManager::getInstance();
+    auto mainwindow = rt_mgr.get("MainWindow");
+    fbc_pass = PassManager::getInstance().LoadPass("fbc_pass", "fengbaochao/fengbaochao.json");
+    fbc_pass->renderTarget = mainwindow;
+}
+
+void fbcEffect::Update()
+{
+    fbcManager_->fbc_->update();
+    auto scene = SceneContainer::getInstance().get(in_scenename);
+    auto camera = scene->getCamera(in_cameraname);
+
+    RenderQueue queue;
+    scene->getVisibleRenderQueue_as(camera, queue);
+    fbc_pass->camera = camera;
+    fbc_pass->queue = queue;
+}
+
+void fbcEffect::GetInputPasses(vector<Pass*>& passes, vector<pair<Pass*, Pass*>>& /*inputPasses*/, vector<pair<Texture*&, Texture*&>>& inputTexture)
+{
+    passes.push_back(fbc_pass);
+}
 
 void GlobePipeline::Init()
 {
@@ -215,8 +239,14 @@ void GlobePipeline::Init()
         weather_effect->in_scenename = "scene_weather";
         weather_effect->in_cameraname = "main";
         weather_effect->Init();
+        //fengbaochao effect
+        fbc_effect = new fbcEffect(main_camera, earthshape, fbcManager_);
+        fbc_effect->in_scenename = "scene_fengbaochao";
+        fbc_effect->in_cameraname = "main";
+        fbc_effect->Init();
         passGraph.AttachEffect(fx_main_raycasted);
-       // passGraph.AttachEffect(weather_effect);
+        //passGraph.AttachEffect(weather_effect);
+        passGraph.AttachEffect(fbc_effect);
         passGraph.PrintGraph();
     }
 }

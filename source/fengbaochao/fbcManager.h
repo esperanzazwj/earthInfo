@@ -8,27 +8,30 @@ class fbcManager {
 public:
     int val;
     FengBaoChao * fbc_;
-    SceneManager * scene_fengbaochao;
+    //SceneManager * scene_fengbaochao;
 
     fbcManager(SceneManager* scene_fengbaochao, Ellipsoid * earthshape, MomentumCamera* maincamera)
-        :scene_fengbaochao(scene_fengbaochao)
+        //:scene_fengbaochao(scene_fengbaochao)
     {
         val = 1;
         fbc_ = new FengBaoChao(earthshape, maincamera);
         Init();
         //test
-        fbc_->_mesh->createSceneNode(scene_fengbaochao, "fengbaochao");
+        //fbc_->_mesh->createSceneNode(scene_fengbaochao, "fengbaochao");
     }
     ~fbcManager() {}
 
-    void Init() {
+    void LoadMesh()
+    {
         fbc_->_status = 1;
         srand((unsigned)time(NULL));
         fbc_->makePatterns();
         fbc_->_mesh = new Mesh<P3_C4, int>(VirtualGlobeRender::TRIANGLES, VirtualGlobeRender::GPU_DYNAMIC);
         fbc_->_mesh->addAttributeType(0, 3, VirtualGlobeRender::A32F, false);
         fbc_->_mesh->addAttributeType(1, 4, VirtualGlobeRender::A32F, false);
-
+    }
+    void Init() {
+        LoadMesh();
         switch (val)
         {
             case 1://speed
@@ -52,8 +55,8 @@ public:
 
         fbc_->initializeTestMesh();
 
-        int size;
-        fbc_->fbc_pass = PassManager::getInstance().LoadPass("fbc_pass", "fengbaochao/fengbaochao.json");
+        //int size;
+        //fbc_->fbc_pass = PassManager::getInstance().LoadPass("fbc_pass", "fengbaochao/fengbaochao.json");
 
         //unsigned char* shader0 = loadShader("VG/scene/ColorModelNodeVS.glsl", size);
         //unsigned char* shader1 = loadShader("VG/scene/ColorModelNodeFS.glsl", size);
@@ -62,9 +65,9 @@ public:
        // fbc_->funcFS = fbc_->_program->getUniform4f("func");
       //  fbc_->funcFS->set(vec4f(0, 0, 0, 0));
         fbc_->iframe = 0;
-        auto& rt_mgr = RenderTargetManager::getInstance();
+        /*auto& rt_mgr = RenderTargetManager::getInstance();
         auto mainwindow = rt_mgr.get("MainWindow");
-        fbc_->fbc_pass->renderTarget = mainwindow;
+        fbc_->fbc_pass->renderTarget = mainwindow;*/
         //fbc_->fb = FrameBuffer::getDefault();
 
         // ready to run-> run work thread(rendering)

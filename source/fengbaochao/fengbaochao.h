@@ -101,7 +101,7 @@ public:
 	map<int, double*> _dataPool;
 	int workThread();
 	void cut();
-	void drawContent(float timeSinceLastTime);
+	void updateContent(float timeSinceLastTime);
 	void drawContentAfterWater(float timeSinceLastTime);
 	void filter();
 	void getDP();
@@ -110,7 +110,7 @@ public:
 	void tran();
 	void updatedata();
 
-	void draw();
+	void update();
 
 private:
 	vec4f* tempCol;	

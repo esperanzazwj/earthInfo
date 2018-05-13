@@ -50,6 +50,7 @@ namespace app
             main_camera = new VirtualGlobeScene::MomentumCamera(earthshape);//should release
             main_camera->set_viewport(vec4i(0, 0, w, h));
 
+            fbcManager_ = new fbcManager(scene_fengbaochao, earthshape, main_camera);
             InitWrapper();//call create_scene
 
             basic_buffer = RenderTargetManager::getInstance().CreateRenderTargetFromPreset("basic", "basic_buffer");
@@ -62,8 +63,6 @@ namespace app
             auto& ctx = ss::Window_System::current().context();
             glfwSetScrollCallback(ctx, app::scrollMoveEvent);
 
-            fbcManager_ = new fbcManager(scene_fengbaochao, earthshape, main_camera);
-
             //initalize pipeline
             InitPipeline();
         }
@@ -71,7 +70,7 @@ namespace app
         void InitPipeline()
         {
             //Globe pipeline(define how to shade)
-            pipeline = new GlobePipeline(main_camera, earthshape, earthRadius, app::globeInteractive);
+            pipeline = new GlobePipeline(main_camera, earthshape, earthRadius, app::globeInteractive,fbcManager_);
             pipeline->Init();
         }
 
@@ -94,6 +93,7 @@ namespace app
             //scene manager-->SceneContainer(global)
             SceneContainer::getInstance().add(scene);
             SceneContainer::getInstance().add(scene_weather);
+            SceneContainer::getInstance().add(scene_fengbaochao);
 
             //obsolete
 			Vector3 cameraEye = Vector3(earthRadius * 3, 0, 0);
@@ -115,6 +115,7 @@ namespace app
             //use script to load models
             scene->LoadSceneFromConfig("model/earth_plane/RayCastedGlobe.json");
             scene_weather->LoadSceneFromConfig("model/earth_plane/plane_scene.json");
+            fbcManager_->fbc_->_mesh->createSceneNode(scene_fengbaochao, "fengbaochao");
         }
 
         void UpdateGUI()

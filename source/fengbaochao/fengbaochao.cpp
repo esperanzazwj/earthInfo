@@ -37,7 +37,7 @@ using namespace std;
 	{
 		id = -1;
 		_status = 0;
-		_curType = -1;
+		_curType = Speed;
 		_mesh = NULL;
 		_cutmesh = NULL;
 		_loader_thread = false;
@@ -72,7 +72,7 @@ using namespace std;
 				}
 
 				double* data = new double[numx* numy];
-				if (loadFile("VG/taifeng/newVelocity/U10-0.dat",data))
+				if (loadFile("runtime/taifeng/newVelocity/U10-0.dat",data))
 				{
 					int idx =0;
 					for (int y = 0; y < numy; y++)
@@ -90,7 +90,7 @@ using namespace std;
                     cout << "error(data read)" << endl;
                 }
 
-				if (loadFile("VG/taifeng/newVelocity/V10-0.dat",data))
+				if (loadFile("runtime/taifeng/newVelocity/V10-0.dat",data))
 				{
 					int idx =0;
 					for (int y = 0; y < numy; y++)
@@ -159,7 +159,7 @@ using namespace std;
 			{
 				double* data = new double[numx*numy*20];
 				//这里原版读文件判断的是另一个文件pressure，读的是tv，奇怪
-				if (loadFile("VG/taifeng/TV.dat",data))
+				if (loadFile("runtime/taifeng/TV.dat",data))
 				{
 					int idx =0;
 					for(int z=0; z<20; z++)
@@ -260,7 +260,7 @@ using namespace std;
 		case Press:
 			{
 				int *data = new int[sizex*sizey];
-				if (loadIntFile("VG/taifeng/pressure/700-0.dat",data))
+				if (loadIntFile("runtime/taifeng/pressure/700-0.dat",data))
 				{
 					int idx =0;
 					for (int x = 0; x < sizex; x++)
@@ -277,7 +277,7 @@ using namespace std;
                 }
 				memcpy(PressureData1, PressureData,sizeof(PressureData));
 
-				if (loadIntFile("VG/taifeng/pressure/700-6.dat",data))
+				if (loadIntFile("runtime/taifeng/pressure/700-6.dat",data))
 				{
 					int idx =0;
 					for (int x = 0; x < sizex; x++)
@@ -331,14 +331,14 @@ using namespace std;
 	}
 
     //call FengBaoChao::draw for drawing
-	void FengBaoChao::draw()
+	void FengBaoChao::update()
 	{
 		if(_mainCamera->csys() == CoordinateSystem::GLOBAL)
-			drawContent(0);		
+			updateContent(0);		
 	}
 
     //unfinished
-	void FengBaoChao::drawContent(float timeSinceLastTime)
+	void FengBaoChao::updateContent(float timeSinceLastTime)
 	{
 		if (_status == 0)
 		{
@@ -366,29 +366,39 @@ using namespace std;
 
 		mat4f worldToCamera =_mainCamera->m_view_matrix();
 		vec3d eyed = _mainCamera->reference_center();
-		vec3f eyef(eyed.x, eyed.y, eyed.z);
+		Vector3 eyef = Vector3(eyed.x, eyed.y, eyed.z);
 		mat4f cameraToScreen = _mainCamera->m_absolute_projection_matrix();
         mat4f worldToScreen = cameraToScreen * worldToCamera;
         auto worldToScreenMatrix4 = mat4fToMatrix4(worldToScreen);
         fbc_pass->setProgramConstantData("og_modelViewPerspectiveMatrix", worldToScreenMatrix4.ptr(), "mat4", sizeof(Matrix4));
-
-		////viewportTansMatrix->setMatrix(cameraToScreen * worldToCamera);
+        fbc_pass->setProgramConstantData("u_cam", eyef.ptr(), "vec3", sizeof(Vector3));
+        fbc_pass->mBlendState = BlendState(true, BLEND_OP_ADD, BLEND_SRC_ALPHA, BLEND_INV_SRC_ALPHA);//INV可能是错的
+		//viewportTansMatrix->setMatrix(cameraToScreen * worldToCamera);
 		//_program->getUniform3f("u_cam")->set(eyef);
 		////fb->setDepthTest(false);
 		//fb->setBlend(true,ADD,SRC_ALPHA, ONE_MINUS_SRC_ALPHA);
-		//if(!b_cut)
+		if(!b_cut)
+            fbc_pass->setProgramConstantData("func", Vector4(0,0,0,0).ptr(), "vec4", sizeof(Vector4));
 		//	funcFS->set(vec4f(0,0,0,0));
-		//else
+		else
+            fbc_pass->setProgramConstantData("func", Vector4(func.x, func.y, func.z, func.w).ptr(), "vec4", sizeof(Vector4));
 		//	funcFS->set(func);
 		//fb->draw(_program, *_mesh);
 
-		//if(_cutmesh != NULL && !b_cut)
-		//{
-		//	funcFS->set(vec4f(0,0,0,0));
-		//	fb->draw(_program, *_cutmesh);
-		//	funcFS->set(func);
-		//}
-		//fb->setBlend(false);
+        if (false)
+        {
+            if (_cutmesh != NULL && !b_cut)
+            {
+                fbc_pass->setProgramConstantData("func", Vector4(0, 0, 0, 0).ptr(), "vec4", sizeof(Vector4));
+                //	funcFS->set(vec4f(0,0,0,0));
+                //	fb->draw(_program, *_cutmesh);
+                fbc_pass->setProgramConstantData("func", Vector4(func.x, func.y, func.z, func.w).ptr(), "vec4", sizeof(Vector4));
+                //	funcFS->set(func);
+            }
+            fbc_pass->mBlendState.mBlendEnable = false;
+            //fb->setBlend(false);
+
+        }
 	}
    
 	void FengBaoChao::drawContentAfterWater(float timeSinceLastTime)
@@ -875,8 +885,8 @@ using namespace std;
 				{
 				case Speed:
 					{
-						sprintf(pathName, "VG/taifeng/newVelocity/U10-%d.dat",iter->first);
-						sprintf(pathName1, "VG/taifeng/newVelocity/V10-%d.dat",iter->first);
+						sprintf(pathName, "runtime/taifeng/newVelocity/U10-%d.dat",iter->first);
+						sprintf(pathName1, "runtime/taifeng/newVelocity/V10-%d.dat",iter->first);
 						data = new double[numx* numy*2];
 
 						if (!loadFile(pathName,data)) 
@@ -896,7 +906,7 @@ using namespace std;
 					break;
 				case Press:
 					{
-						sprintf(pathName, "VG/taifeng/pressure/700-%d.dat",iter->first);
+						sprintf(pathName, "runtime/taifeng/pressure/700-%d.dat",iter->first);
 						data = new double[sizex* sizey];
 
 						if (!loadFile(pathName,data)) 

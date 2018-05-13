@@ -161,6 +161,14 @@ namespace HW
 		this->mSampleMask = other.mSampleMask;
 	}
 	//////////////////////////////////////////////////////////////////////////
+    BlendState::BlendState(bool blendEnable, BlendOperation op, BlendOperand src, BlendOperand dst)
+    {
+        mBlendEnable = blendEnable;
+        mBlendFunc = op;
+        mSrcBlend = src;
+        mDestBlend = dst;
+    }
+
 	BlendState& BlendState::operator=(const BlendState &other)
 	{
 		this->mAlphaToConverageEnable = other.mAlphaToConverageEnable;
