@@ -195,6 +195,7 @@ void fbcEffect::Init()
     auto mainwindow = rt_mgr.get("MainWindow");
     fbc_pass = PassManager::getInstance().LoadPass("fbc_pass", "fengbaochao/fengbaochao.json");
     fbc_pass->renderTarget = mainwindow;
+    fbcManager_->fbc_->fbc_pass = fbc_pass;
 }
 
 void fbcEffect::Update()

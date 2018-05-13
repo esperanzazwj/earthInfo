@@ -84,7 +84,6 @@ namespace app
         //initalized scene(model)
         void CreateScene()
         {
-
             //create scene manager(not yet load model)
             scene = new OctreeSceneManager("scene1", render);
             scene_weather= new OctreeSceneManager("scene_weather", render);
@@ -115,7 +114,9 @@ namespace app
             //use script to load models
             scene->LoadSceneFromConfig("model/earth_plane/RayCastedGlobe.json");
             scene_weather->LoadSceneFromConfig("model/earth_plane/plane_scene.json");
-            fbcManager_->fbc_->_mesh->createSceneNode(scene_fengbaochao, "fengbaochao");
+            //fbcManager_->fbc_->_mesh->createSceneNode(scene_fengbaochao, "fengbaochao");
+            fbcManager_->prepareFengBaoChaoData();
+            fbcManager_->addFengBaoChaoDataToSceneManager(scene_fengbaochao, "fengbaochao");
         }
 
         void UpdateGUI()

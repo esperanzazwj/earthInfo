@@ -13,23 +13,46 @@ public:
     fbcManager(SceneManager* scene_fengbaochao, Ellipsoid * earthshape, MomentumCamera* maincamera)
         //:scene_fengbaochao(scene_fengbaochao)
     {
-        val = 1;
+        //val = 1;
         fbc_ = new FengBaoChao(earthshape, maincamera);
-        Init();
+        initFengBaoChaoSettings();
+        //Init();
         //test
         //fbc_->_mesh->createSceneNode(scene_fengbaochao, "fengbaochao");
     }
+
     ~fbcManager() {}
+
+    void initFengBaoChaoSettings()
+    {
+        srand((unsigned)time(NULL));
+
+        fbc_->_status = 1;
+        fbc_->iframe = 0;
+        fbc_->makePatterns();
+    }
+
+    void prepareFengBaoChaoData()
+    {
+        fbc_->initializeSpeedData();
+        fbc_->initializeTempData();
+        fbc_->initializePressData();
+    }
+
+    void addFengBaoChaoDataToSceneManager(SceneManager* scene_manager, const string &name)
+    {
+        fbc_->addSpeedDataIntoSceneManager(scene_manager, name);
+        //先只加载speed作为测试
+    }
 
     void LoadMesh()
     {
         fbc_->_status = 1;
         srand((unsigned)time(NULL));
         fbc_->makePatterns();
-        fbc_->_mesh = new Mesh<P3_C4, int>(VirtualGlobeRender::TRIANGLES, VirtualGlobeRender::GPU_DYNAMIC);
-        fbc_->_mesh->addAttributeType(0, 3, VirtualGlobeRender::A32F, false);
-        fbc_->_mesh->addAttributeType(1, 4, VirtualGlobeRender::A32F, false);
+       // fbc_->_mesh = new Mesh<P3_C4, int>(VirtualGlobeRender::TRIANGLES, VirtualGlobeRender::GPU_DYNAMIC);
     }
+
     void Init() {
         LoadMesh();
         switch (val)

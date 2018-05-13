@@ -7,13 +7,12 @@
 using namespace std;
 //using namespace oceaninfo::platform;
 
-	static bool loadFile(const string &file,double* tar)
+	static bool loadFile(const string &file, double* tar)
 	{
 		ifstream fs(file.c_str(), ios::binary);
 		fs.seekg(0, ios::end);
 		int size = fs.tellg();
-		if(size<= 0)
-			return false;
+		if (size <= 0) return false;
 		fs.seekg(0);
 		fs.read((char*)tar, size);
 		fs.close();
@@ -25,8 +24,7 @@ using namespace std;
 		ifstream fs(file.c_str(), ios::binary);
 		fs.seekg(0, ios::end);
 		int size = fs.tellg();
-		if(size<= 0)
-			return false;
+		if (size <= 0) return false;
 		fs.seekg(0);
 		fs.read((char*)tar, size);
 		fs.close();
@@ -56,12 +54,13 @@ using namespace std;
 		//	delete _loaderMutex;
 	}
 
+
 	//读取初始时刻数据
 	void FengBaoChao::initializeTestMesh()
 	{
 		switch(_curType)
 		{
-		case Speed:
+			case Speed:
 			{
 				for (int x = 0; x < 301; x++)
 				{
@@ -71,7 +70,7 @@ using namespace std;
 					}
 				}
 
-				double* data = new double[numx* numy];
+				double* data = new double[numx*numy];
 				if (loadFile("runtime/taifeng/newVelocity/U10-0.dat",data))
 				{
 					int idx =0;
@@ -108,8 +107,9 @@ using namespace std;
                     cout << "error(data read)" << endl;
                 }
 				delete []data;
+
 				//SDL_LockMutex(_loaderMutex);//预读5个
-				for (int i =1 ;i <6; i++)
+				for (int i = 1; i < 6; i++)
 				{
 					_dataPool[i] = NULL;
 				}
@@ -153,16 +153,17 @@ using namespace std;
 						js = js + 6;
 					}
 				}
+				break;
 			}
-			break;
-		case Temp:
+			case Temp:
 			{
-				double* data = new double[numx*numy*20];
+				double* data = new double[numx*numy * 20];
 				//这里原版读文件判断的是另一个文件pressure，读的是tv，奇怪
 				if (loadFile("runtime/taifeng/TV.dat",data))
 				{
 					int idx =0;
-					for(int z=0; z<20; z++)
+					for (int z = 0; z < 20; z++)
+					{
 						for (int y = 0; y < numy; y++)
 						{
 							for (int x = 0; x < numx; x++)
@@ -170,6 +171,8 @@ using namespace std;
 								PData[z][x][y] = data[idx++];
 							}
 						}
+					}
+						
 				}
 				else { /*QMessageBox::information(NULL,QStringLiteral("错误"),
 					QStringLiteral("数据读取错误"));*/
@@ -179,28 +182,28 @@ using namespace std;
 
 				//生成绘制索引数组
 				int js = 0;
-				for (int t=0; t<20; t++)
+				for (int t = 0; t < 20; t++)
 				{
 					for (int s = 0; s < 200; s++)
 					{
 						for (int k = 0; k < 300; k++)
 						{
-							int base = t*numx*numy;
+							int base = t * numx*numy;
 							_mesh->setIndice(js, s * 301 + k + 301 + base);
-							_mesh->setIndice(js +1, s * 301 + k + 1+ base);
-							_mesh->setIndice(js+2,s * 301 + k + 0+ base);
+							_mesh->setIndice(js + 1, s * 301 + k + 1 + base);
+							_mesh->setIndice(js + 2, s * 301 + k + 0 + base);
 
-							_mesh->setIndice(js + 3, s * 301 + k + 301+ base);
-							_mesh->setIndice(js + 4, s * 301 + k + 302+ base);
-							_mesh->setIndice(js + 5, s * 301 + k + 1+ base);
+							_mesh->setIndice(js + 3, s * 301 + k + 301 + base);
+							_mesh->setIndice(js + 4, s * 301 + k + 302 + base);
+							_mesh->setIndice(js + 5, s * 301 + k + 1 + base);
 
 							js = js + 6;
 						}
 					}
 				}
 
-				vec3f* vertexPos = new vec3f[numx * numy*20];
-				tempCol = new vec4f[numx*numy*20];
+				vec3f *vertexPos = new vec3f[numx * numy * 20];
+				tempCol = new vec4f[numx*numy * 20];
 
 				for (int z = 0; z < 20; z++)
 				{
@@ -255,9 +258,10 @@ using namespace std;
 					_mesh->setVertex(i, P3_C4(vertexPos[i], tempCol[i]));
 				}
 				delete []vertexPos;
+
+				break;
 			}
-			break;
-		case Press:
+			case Press:
 			{
 				int *data = new int[sizex*sizey];
 				if (loadIntFile("runtime/taifeng/pressure/700-0.dat",data))
@@ -279,7 +283,7 @@ using namespace std;
 
 				if (loadIntFile("runtime/taifeng/pressure/700-6.dat",data))
 				{
-					int idx =0;
+					int idx = 0;
 					for (int x = 0; x < sizex; x++)
 					{
 						for (int y = 0; y < sizey; y++)
@@ -295,35 +299,185 @@ using namespace std;
 
 				delete []data;
 				//SDL_LockMutex(_loaderMutex);//预读3个
-				for (int i =2 ;i <5; i++)
+				for (int i = 2; i < 5; i++)
 				{
-					_dataPool[i*6] = NULL;
+					_dataPool[i * 6] = NULL;
 				}
 				//SDL_UnlockMutex(_loaderMutex);
 				//生成绘制索引数组
 				int js = 0;
-				for (int s = 0; s < sizey-1; s++)
+				for (int s = 0; s < sizey - 1; s++)
 				{
 					for (int k = 0; k < sizex -1; k++)
 					{
-
 						_mesh->setIndice(js, s * sizex + k + sizex);
-						_mesh->setIndice(js +1, s * sizex + k + 1);
-						_mesh->setIndice(js+2,s * sizex + k + 0);
+						_mesh->setIndice(js + 1, s * sizex + k + 1);
+						_mesh->setIndice(js + 2, s * sizex + k + 0);
 
 						_mesh->setIndice(js + 3, s * sizex + k + sizex);
-						_mesh->setIndice(js + 4, s * sizex + k + sizex+1);
+						_mesh->setIndice(js + 4, s * sizex + k + sizex + 1);
 						_mesh->setIndice(js + 5, s * sizex + k + 1);
 						js = js + 6;
 					}
 				}
-			}
-			break;
-		default:
-			return;
+				break;
+			}			
+			default:
+				return;
 		}
 	}
    
+	//读取Speed数据到SpeedMeshes
+	void FengBaoChao::initializeSpeedData()
+	{
+		for (int x = 0; x < 301; x++)
+		{
+			for (int y = 0; y < 201; y++)
+			{
+				HData[x][y] = 5000;
+			}
+		}
+
+		//从文件中读取所有的speed数据到DataPool中，共speedDataNum个
+		readAllSpeedDataIntoPool();
+
+		speedMeshes.resize(speedDataNum);
+
+		//将DataPool中的原始speed数据读入speedMeshes中，解码为顶点属性以及索引信息
+		for (int x = 0; x < speedDataNum; x++)
+		{
+			speedMeshes[x] = new Mesh<P3_C4, int>(VirtualGlobeRender::TRIANGLES, VirtualGlobeRender::GPU_DYNAMIC);
+			speedMeshes[x]->setCapacity(numx*numy, (numx - 1)*(numy - 1) * 6);
+			
+			//设置索引
+			int js = 0;
+			for (int s = 0; s < 200; s++)
+			{
+				for (int k = 0; k < 300; k++)
+				{
+					speedMeshes[x]->setIndice(js, s * 301 + k + 301);
+					speedMeshes[x]->setIndice(js + 1, s * 301 + k + 1);
+					speedMeshes[x]->setIndice(js + 2, s * 301 + k + 0);
+					speedMeshes[x]->setIndice(js + 3, s * 301 + k + 301);
+					speedMeshes[x]->setIndice(js + 4, s * 301 + k + 302);
+					speedMeshes[x]->setIndice(js + 5, s * 301 + k + 1);
+					js = js + 6;
+				}
+			}
+			//设置顶点属性信息
+			updateSpeedData(x);
+		}	
+	}
+
+	void FengBaoChao::readAllSpeedDataIntoPool()
+	{
+		speedDataPool.resize(speedDataNum);
+
+		char pathNameU[512];
+		char pathNameV[512];
+
+		for (int k = 0; k < speedDataNum; k++)
+		{
+			sprintf(pathNameU, "runtime/taifeng/newVelocity/U10-%d.dat", k);
+			sprintf(pathNameV, "runtime/taifeng/newVelocity/V10-%d.dat", k);
+			double *import_data = new double[numx*numy * 2];
+
+			if (!loadFile(pathNameU, import_data))
+			{
+				cout << "错误:数据读取错误" << endl;
+			}
+			if (!loadFile(pathNameV, import_data + numx * numy))
+			{
+				cout << "错误:数据读取错误" << endl;
+			}
+			speedDataPool[k] = import_data;
+		}
+	}
+
+	void FengBaoChao::updateSpeedData(int kth)
+	{
+		//下面的代码都是从原始数据计算顶点属性数据
+		double *dataInSpeedDataPool = speedDataPool[kth];
+		int idx = 0;
+		for (int y = 0; y < numy; y++)
+		{
+			for (int x = 0; x < numx; x++)
+			{
+				vel[x][y][0] = dataInSpeedDataPool[idx];
+				vel[x][y][1] = dataInSpeedDataPool[numx*numy + idx++];
+			}
+		}
+
+		//HSV模型颜色映射之方向、速度大小
+		for (int i = 0; i < numx; i++)
+		{
+			for (int j = 0; j < numy; j++)
+			{
+				HSV[i][j][0] = (float)(atan2(vel[i][j][1], vel[i][j][0]) * 180.0 / M_PI);
+				if (HSV[i][j][0] < 0) HSV[i][j][0] = HSV[i][j][0] + 360.0;
+				int s1 = (int)(vel[i][j][1] * vel[i][j][1] + vel[i][j][0] * vel[i][j][0]);
+				HSV[i][j][1] = (1.0f - (float)sqrt(s1 / 606.0f));
+			}
+		}
+
+		vec3f *vertexPos = new vec3f[numx*numy];
+		vec4f *vertexCol = new vec4f[numx*numy];
+		//噪声融合更新
+		float ss;
+		getDP();
+		for (int i = 0; i < numx; i++)
+		{
+			for (int j = 0; j < numy; j++)
+			{
+				Geodetic3D llh = Geodetic3D(radians((i - 4) / 10.0f + 110), radians((j - 0) / 10.0f + 15), (double)HData[i][j]);
+				vec3d p = _earthshape->ToVector3D(llh);
+				vertexPos[j * numx + i] = vec3f(p.x, p.y, p.z);
+				//有个问题，一个数据文件产生的数据是每一帧都要变？
+				ss = 0.9f * vpat1[i][j] + 0.1f * pat[i][j][iframe % 32];
+				vpat2[i][j] = (int)ss < 255 ? (int)ss : 255;
+				HSV[i][j][2] = vpat2[i][j] / 255.0f;
+			}
+		}
+		filter();
+		HSV2RGB();
+
+		//顶点颜色设定
+		for (int i = 0; i < numx; i++)
+		{
+			for (int j = 0; j < numy; j++)
+			{
+				vertexCol[j * numx + i] = vec4f(RGB[i][j][0], RGB[i][j][1], RGB[i][j][2], 150.0 / 255.0);
+			}
+		}
+
+		//设置顶点属性
+		for (int i = 0; i < numx*numy; i++)
+		{
+			speedMeshes[kth]->setVertex(i, P3_C4(vertexPos[i], vertexCol[i]));
+		}
+
+		delete[]vertexPos;
+		delete[]vertexCol;
+	}
+	
+	//将SpeedMeshes数据加载到SceneManager
+	void FengBaoChao::addSpeedDataIntoSceneManager(SceneManager* scene_manager, const string &name)
+	{
+		//这里先加载一个模型作为测试
+		speedMeshes[0]->createSceneNode(scene_manager, name);
+	}
+
+	//读取温度，压力数据
+	void FengBaoChao::initializeTempData()
+	{
+		//待实现
+	}
+
+	void FengBaoChao::initializePressData()
+	{
+		//待实现
+	}
+
 	void FengBaoChao::cut()
 	{
 		b_cutterMaking = true;
@@ -346,6 +500,7 @@ using namespace std;
 		}
 		if(_status == 1)
 			iframe++;
+		//每32帧更新一次data
 		if(iframe %32 ==0 && _status ==1)
 		{
 			updatedata();
@@ -456,6 +611,7 @@ using namespace std;
 		memcpy(vpat, vpat2, sizeof(vpat2));
 	}
  
+	//update vpat1?
 	void FengBaoChao::getDP()
 	{
 		float vx, vy, r; //float dx, dy;
@@ -720,20 +876,18 @@ using namespace std;
 		{
 		case Speed:
 			{
-				static int num =0;
+			static int num = 0;
 				num = num + 1;
 				if (num > 48)
 				{
 					num = 0;
 				}
 				//SDL_LockMutex(_loaderMutex);//预读5个
-				for (int i =0 ;i <5; i++)
+				for (int i = 0; i < 5; i++)
 				{
-					int val = num +i;
-					if(val > 48)
-						val-=48;
-					if(_dataPool.find(val) == _dataPool.end())
-						_dataPool[val] = NULL;
+					int val = num + i;
+					if (val > 48) val -= 48;
+					if(_dataPool.find(val) == _dataPool.end()) _dataPool[val] = NULL;
 				}
 				//SDL_UnlockMutex(_loaderMutex);
 

@@ -43,6 +43,14 @@ using namespace VirtualGlobeCore;
 //class oceaninfo::platform::RenderView;
 //using namespace oceaninfo::platform;
 
+struct P3_C4
+{
+	vec3f _p;
+	vec4f _c;
+	P3_C4() {}
+	P3_C4(const vec3f& p, const vec4f& c) : _p(p), _c(c) {}
+};
+
 class FengBaoChao
 {
 public:
@@ -57,6 +65,14 @@ public:
 
 	void makePatterns();
 	void initializeTestMesh();
+	//新添加载模型函数
+	void initializeSpeedData();
+	void readAllSpeedDataIntoPool();
+	void updateSpeedData(int kth);
+	void addSpeedDataIntoSceneManager(SceneManager* scene_manager, const string &name);
+
+    void initializeTempData();
+    void initializePressData();
 
 	int id;
 	int pat[numx][numy][32];
@@ -71,6 +87,11 @@ public:
 	int PressureData[sizex][sizey];
 	int PressureData1[sizex][sizey];
 	int PressureData2[sizex][sizey];
+
+	//新添模型speed
+	const int speedDataNum = 48;
+	vector<Mesh<P3_C4, int>*> speedMeshes;
+	vector<double*> speedDataPool;
 
 	Mesh<P3_C4 ,int > *_mesh;
 	Mesh<P3_C4 ,short > *_cutmesh;

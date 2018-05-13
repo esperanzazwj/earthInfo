@@ -167,6 +167,9 @@ namespace HW
         mBlendFunc = op;
         mSrcBlend = src;
         mDestBlend = dst;
+		mBlendFuncAlpha = op;
+		mSrcBlendAlpha = src;
+		mDestBlendAlpla = dst;
     }
 
 	BlendState& BlendState::operator=(const BlendState &other)
