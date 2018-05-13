@@ -24,6 +24,7 @@
 using namespace VirtualGlobeScene;
 
 #include "../oceanInfo/Geometry/Ellipsoid.h"
+#include "../as-is/Engine/pass.h"
 #include "Mesh.h"
 
 using namespace VirtualGlobeCore;
@@ -42,19 +43,6 @@ using namespace VirtualGlobeCore;
 //class oceaninfo::platform::RenderView;
 //using namespace oceaninfo::platform;
 
-struct P3_C4 
-{
-	vec3f _p;
-	vec4f _c;
-	P3_C4(){
-
-	}
-
-	P3_C4(const vec3f& p , const vec4f& c) : _p(p),  _c(c){
-
-	}
-};
-	
 class FengBaoChao
 {
 public:
@@ -86,6 +74,7 @@ public:
 
 	Mesh<P3_C4 ,int > *_mesh;
 	Mesh<P3_C4 ,short > *_cutmesh;
+    Pass* fbc_pass{};
 	//ptr<Program> _program;
 	//ptr<UniformMatrix4f> viewportTansMatrix;
 	//ptr<Uniform4f> funcFS;

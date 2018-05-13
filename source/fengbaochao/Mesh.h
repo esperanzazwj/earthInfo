@@ -3,6 +3,9 @@
 
 #include <cstring> // for memcpy
 #include "Types.h"
+#include "../as-is/Engine/Geometry.h"
+#include "../as-is/Engine/SubMesh.h"
+#include "../as-is/Engine/SceneManager.h"
 //#include "ork/render/CPUBuffer.h"
 //#include "ork/render/GPUBuffer.h"
 //#include "ork/render/MeshBuffers.h"
@@ -12,7 +15,13 @@ using namespace std;
 namespace VirtualGlobeRender
 {
 
-//class FrameBuffer;
+    struct P3_C4
+    {
+        vec3f _p;
+        vec4f _c;
+        P3_C4() {}
+        P3_C4(const vec3f& p, const vec4f& c) : _p(p), _c(c) {}
+    };
 
 /**
  * A MeshBuffers wrapper that provides a convenient API to define the mesh content.
@@ -173,6 +182,93 @@ public:
      * 查询是否开启CPU段的顶点信息自动在传往GPU后就自动删除机制
      */
     inline bool isCPUDataClearMode();
+
+    //below four functions used for creating meshes
+    inline as_Geometry* createGeometry(const string &name)
+    {
+        as_Geometry* geometry = new as_Geometry();
+        geometry->name = name;
+        geometry->mNumVertices = verticesCount;
+        geometry->mNumFaces = indicesCount / 3;
+        geometry->mNumBones = 0;
+
+        //very slow(need refine)
+        for (int k = 0; k < verticesCount; k++)
+        {
+            geometry->position.push_back(vertices[k]._p.x);
+            geometry->position.push_back(vertices[k]._p.y);
+            geometry->position.push_back(vertices[k]._p.z);
+            geometry->normal.push_back(vertices[k]._c.x);
+            geometry->normal.push_back(vertices[k]._c.y);
+            geometry->normal.push_back(vertices[k]._c.z);
+            geometry->normal.push_back(vertices[k]._c.w);
+        }
+        for (int k = 0; k < indicesCount; k++)
+        {
+            geometry->indices.push_back(indices[k]);
+        }
+       
+        return geometry;
+    }
+
+    inline MeshPtr genMeshPtr(const string &name)
+    {
+        //only geometries and meshes
+        vector<as_Geometry*> geos;
+        vector<as_Mesh*> meshs;
+
+        as_Geometry *geo = createGeometry(name);
+        geos.push_back(geo);
+        as_Mesh *mesh_ = new as_Mesh();
+        mesh_->name = name;
+        mesh_->geometry = geo;
+        mesh_->material = NULL;
+        mesh_->materialID = 0;
+        meshs.push_back(mesh_);
+
+        OMesh *mesh = new SubMesh(name);
+        auto& g = GlobalResourceManager::getInstance();
+        for (auto& x : geos)
+        {
+            g.as_geometryManager.add(x);
+        }
+        for (auto& x : meshs)
+        {
+            mesh->addSubMesh_as(x);
+            g.as_meshManager.add(x);
+        }
+
+        return MeshPtr(mesh);
+    }
+
+    inline MeshPtr createMeshPtr(const string& name)
+    {
+        auto meshMgr = MeshManager::getSingletonPtr();
+        auto mesh_ = meshMgr->getMeshByName(name);
+        if (mesh_ != NULL)
+            return mesh_;
+        MeshPtr mesh = genMeshPtr(name);
+        meshMgr->registerMesh(mesh);
+        return mesh;
+    }
+
+    //you can create a scene for a scene_manager here
+    inline SceneNode* createSceneNode(SceneManager* scene_manager, const string &name)
+    {
+        MeshPtr mesh = createMeshPtr(name);
+        if (mesh == NULL) return NULL;
+
+        Entity* entity = scene_manager->getEntity(name);
+        if (entity == NULL)
+            entity = scene_manager->CreateEntity(name);
+        entity->setMesh(mesh);
+        SceneNode* snode = scene_manager->getSceneNode(name);
+        if (snode == NULL) {
+            snode = scene_manager->CreateSceneNode(name);
+            snode->attachMovable(entity);
+        }
+        return snode;
+    }
 
 private:
     /**

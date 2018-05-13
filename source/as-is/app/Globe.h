@@ -31,6 +31,7 @@ namespace app
         RenderTarget * basic_buffer;
 
         SceneManager * scene_weather;
+        SceneManager * scene_fengbaochao;
         fbcManager * fbcManager_;
 
         Globe() :earthRadius(0), earthshape(NULL), main_camera(NULL), basic_buffer(NULL) {}
@@ -61,7 +62,7 @@ namespace app
             auto& ctx = ss::Window_System::current().context();
             glfwSetScrollCallback(ctx, app::scrollMoveEvent);
 
-            fbcManager_ = new fbcManager(earthshape, main_camera);
+            fbcManager_ = new fbcManager(scene_fengbaochao, earthshape, main_camera);
 
             //initalize pipeline
             InitPipeline();
@@ -88,7 +89,8 @@ namespace app
             //create scene manager(not yet load model)
             scene = new OctreeSceneManager("scene1", render);
             scene_weather= new OctreeSceneManager("scene_weather", render);
-            
+            scene_fengbaochao = new OctreeSceneManager("scene_fengbaochao", render);
+
             //scene manager-->SceneContainer(global)
             SceneContainer::getInstance().add(scene);
             SceneContainer::getInstance().add(scene_weather);

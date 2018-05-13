@@ -3,11 +3,11 @@
     "GLShader": {
         "vertex shader": {
             "name": "fengbaochaovs",
-            "path": "fengbaochaoVS.vs"
+            "path": "fengbaochaoVS.glsl"
         },
         "fragment shader": {
             "name": "fengbaochaofs",
-            "path": "fengbaochaoFS.fs"
+            "path": "fengbaochaoFS.glsl"
         }
     },
     "input": {
@@ -25,20 +25,15 @@
             "specular_color": "GVS_MATERIAL_SPECULAR"
         },
         "attribute": {
-            "vPositon": {
+            "pos": {
                 "type": "vec3",
                 "semantic": "POSITION",
                 "index": 0
             },
-            "vNormal": {
-                "type": "vec3",
+            "color": {
+                "type": "vec4",
                 "semantic": "NORMAL",
                 "index": 1
-            },
-            "vTexcoord": {
-                "type": "vec2",
-                "semantic": "TEXCOORD",
-                "index": 2
             }
         }
     }

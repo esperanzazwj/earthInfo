@@ -330,15 +330,17 @@ using namespace std;
 		cutCurIdx = 0;
 	}
 
+    //call FengBaoChao::draw for drawing
 	void FengBaoChao::draw()
 	{
 		if(_mainCamera->csys() == CoordinateSystem::GLOBAL)
 			drawContent(0);		
 	}
-   
+
+    //unfinished
 	void FengBaoChao::drawContent(float timeSinceLastTime)
 	{
-	/*	if (_status == 0)
+		if (_status == 0)
 		{
 			return;
 		}
@@ -350,27 +352,43 @@ using namespace std;
 		}
 		tran();
 
-		mat4f worldToCamera = render_view_->getCamera()->m_view_matrix();
-		vec3d eyed = render_view_->getCamera()->reference_center();
-		vec3f eyef(eyed.x, eyed.y, eyed.z);
-		mat4f cameraToScreen = render_view_->getCamera()->m_absolute_projection_matrix();
-		viewportTansMatrix->setMatrix(cameraToScreen * worldToCamera);
-		_program->getUniform3f("u_cam")->set(eyef);
-		//fb->setDepthTest(false);
-		fb->setBlend(true,ADD,SRC_ALPHA, ONE_MINUS_SRC_ALPHA);
-		if(!b_cut)
-			funcFS->set(vec4f(0,0,0,0));
-		else
-			funcFS->set(func);
-		fb->draw(_program, *_mesh);
+        auto mat4fToMatrix4 = [](mat4f m) {
+            Matrix4 matrix;//transpose
+            for (int i = 0; i < 4; i++)
+            {
+                for (int j = 0; j < 4; j++)
+                {
+                    matrix[i][j] = m[j][i];
+                }
+            }
+            return matrix;
+        };
 
-		if(_cutmesh != NULL && !b_cut)
-		{
-			funcFS->set(vec4f(0,0,0,0));
-			fb->draw(_program, *_cutmesh);
-			funcFS->set(func);
-		}
-		fb->setBlend(false);*/
+		mat4f worldToCamera =_mainCamera->m_view_matrix();
+		vec3d eyed = _mainCamera->reference_center();
+		vec3f eyef(eyed.x, eyed.y, eyed.z);
+		mat4f cameraToScreen = _mainCamera->m_absolute_projection_matrix();
+        mat4f worldToScreen = cameraToScreen * worldToCamera;
+        auto worldToScreenMatrix4 = mat4fToMatrix4(worldToScreen);
+        fbc_pass->setProgramConstantData("og_modelViewPerspectiveMatrix", worldToScreenMatrix4.ptr(), "mat4", sizeof(Matrix4));
+
+		////viewportTansMatrix->setMatrix(cameraToScreen * worldToCamera);
+		//_program->getUniform3f("u_cam")->set(eyef);
+		////fb->setDepthTest(false);
+		//fb->setBlend(true,ADD,SRC_ALPHA, ONE_MINUS_SRC_ALPHA);
+		//if(!b_cut)
+		//	funcFS->set(vec4f(0,0,0,0));
+		//else
+		//	funcFS->set(func);
+		//fb->draw(_program, *_mesh);
+
+		//if(_cutmesh != NULL && !b_cut)
+		//{
+		//	funcFS->set(vec4f(0,0,0,0));
+		//	fb->draw(_program, *_cutmesh);
+		//	funcFS->set(func);
+		//}
+		//fb->setBlend(false);
 	}
    
 	void FengBaoChao::drawContentAfterWater(float timeSinceLastTime)
@@ -826,17 +844,18 @@ using namespace std;
 		}
 	}
 
+    //need to be fixed
 	int FengBaoChao::workThread()
 	{
-        cout << "error(call FBC work thread)" << endl;
-		/*int toLoad[5];
+		int toLoad[5];
 		char pathName[512];
 		char pathName1[512];
 		map<int, double*>::iterator iter;
+        //fetch data from files in this thread. need synchronize
 		while (_loader_thread)
 		{
 			bool	toLoad = false;
-			SDL_LockMutex(_loaderMutex);
+			//SDL_LockMutex(_loaderMutex);
 			iter = _dataPool.begin();
 			while(iter != _dataPool.end())
 			{
@@ -848,7 +867,7 @@ using namespace std;
 					break;
 				}
 			}
-			SDL_UnlockMutex(_loaderMutex);
+			//SDL_UnlockMutex(_loaderMutex);
 			if(toLoad)
 			{
 				double* data;
@@ -861,13 +880,18 @@ using namespace std;
 						data = new double[numx* numy*2];
 
 						if (!loadFile(pathName,data)) 
-						{ QMessageBox::information(NULL,QStringLiteral("错误"),
-						QStringLiteral("数据读取错误"));}
+						{
+                            //QMessageBox::information(NULL,QStringLiteral("错误"),
+						    //    QStringLiteral("数据读取错误"));
+                            cout << "error(data read)" << endl;
+                        }
 
 						if (!loadFile(pathName1,data+ numx*numy))
-						{ QMessageBox::information(NULL,
-						QStringLiteral("错误"),
-						QStringLiteral("数据读取错误"));}
+						{
+                           // QMessageBox::information(NULL, QStringLiteral("错误"),
+                            //    QStringLiteral("数据读取错误"));
+                            cout << "error(data read)" << endl;
+                        }
 					}
 					break;
 				case Press:
@@ -876,23 +900,26 @@ using namespace std;
 						data = new double[sizex* sizey];
 
 						if (!loadFile(pathName,data)) 
-						{ QMessageBox::information(NULL,QStringLiteral("错误"),
-						QStringLiteral("数据读取错误"));}
+						{
+                           // QMessageBox::information(NULL,QStringLiteral("错误"),
+						    //    QStringLiteral("数据读取错误"));
+                            cout << "error(data read)" << endl;
+                        }
 					}
 					break;
 				default:
 					break;
 				}
 
-				SDL_LockMutex(_loaderMutex);
+				//SDL_LockMutex(_loaderMutex);
 				iter->second = data;
-				SDL_UnlockMutex(_loaderMutex);
+				//SDL_UnlockMutex(_loaderMutex);
 			}
 
 			if (toLoad == false)
 			{
-				SDL_Delay(10);
+				//SDL_Delay(10);
 			}
-		}*/
+		}
 		return 1;
 	}

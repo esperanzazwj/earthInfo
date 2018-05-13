@@ -8,12 +8,16 @@ class fbcManager {
 public:
     int val;
     FengBaoChao * fbc_;
-    Pass* fbc_pass{};
+    SceneManager * scene_fengbaochao;
 
-    fbcManager(Ellipsoid * earthshape, MomentumCamera* maincamera) {
+    fbcManager(SceneManager* scene_fengbaochao, Ellipsoid * earthshape, MomentumCamera* maincamera)
+        :scene_fengbaochao(scene_fengbaochao)
+    {
         val = 1;
         fbc_ = new FengBaoChao(earthshape, maincamera);
         Init();
+        //test
+        fbc_->_mesh->createSceneNode(scene_fengbaochao, "fengbaochao");
     }
     ~fbcManager() {}
 
@@ -25,30 +29,31 @@ public:
         fbc_->_mesh->addAttributeType(0, 3, VirtualGlobeRender::A32F, false);
         fbc_->_mesh->addAttributeType(1, 4, VirtualGlobeRender::A32F, false);
 
-        switch (val) {
-        case 1://speed
+        switch (val)
         {
-            fbc_->_mesh->setCapacity(numx*numy, (numx - 1)*(numy - 1) * 6);
-        }
-        break;
-        case 2://Temp
-        {
-            fbc_->_mesh->setCapacity(numx*numy * 20, (numx - 1)*(numy - 1) * 6 * 20);
-        }
-        break;
-        case 3://press
-        {
-            fbc_->_mesh->setCapacity(sizex*sizey, (sizex - 1)*(sizey - 1) * 6);
-        }
-        break;
-        default:
+            case 1://speed
+            {
+                fbc_->_mesh->setCapacity(numx*numy, (numx - 1)*(numy - 1) * 6);
+            }
             break;
+            case 2://Temp
+            {
+                fbc_->_mesh->setCapacity(numx*numy * 20, (numx - 1)*(numy - 1) * 6 * 20);
+            }
+            break;
+            case 3://press
+            {
+                fbc_->_mesh->setCapacity(sizex*sizey, (sizex - 1)*(sizey - 1) * 6);
+            }
+            break;
+            default:
+                break;
         }
 
         fbc_->initializeTestMesh();
 
         int size;
-        fbc_pass = PassManager::getInstance().LoadPass("fbc_pass", "fengbaochao/fengbaochao.json");
+        fbc_->fbc_pass = PassManager::getInstance().LoadPass("fbc_pass", "fengbaochao/fengbaochao.json");
 
         //unsigned char* shader0 = loadShader("VG/scene/ColorModelNodeVS.glsl", size);
         //unsigned char* shader1 = loadShader("VG/scene/ColorModelNodeFS.glsl", size);
@@ -59,7 +64,7 @@ public:
         fbc_->iframe = 0;
         auto& rt_mgr = RenderTargetManager::getInstance();
         auto mainwindow = rt_mgr.get("MainWindow");
-        fbc_pass->renderTarget = mainwindow;
+        fbc_->fbc_pass->renderTarget = mainwindow;
         //fbc_->fb = FrameBuffer::getDefault();
 
         // ready to run-> run work thread(rendering)
@@ -75,14 +80,34 @@ public:
         //fbc_->_loaderMutex = SDL_CreateMutex();
     }
 
+    void enableSpeed(bool val)
+    {
+        cout << "#绘制速度场" << endl;
+        switchTaifengType(1);
+        //here you should ask engine to draw fengbaogao(call fengbaochao::draw)
+    }
+
+    void enableTemp(bool val)
+    {
+        cout << "#绘制temp" << endl;
+        switchTaifengType(2);
+    }
+
+    void enablePress(bool val)
+    {
+        cout << "#绘制press" << endl;
+        switchTaifengType(3);
+    }
+
     void switchTaifengType(int val) {
+        //fbc->_status==0 -->stop
         if (val != fbc_->_curType && fbc_->_status != 0) {
             cout << "Warning:请先停止当前的台风类型" << endl;
             return;
         }
         fbc_->_curType = val;
         if (0 == fbc_->_status) {
-           
+            Init();
         }
         else if (fbc_->_status == 1)
         {
