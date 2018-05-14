@@ -30,8 +30,9 @@ namespace app
         VirtualGlobeScene::MomentumCamera *main_camera; // 主相机
         RenderTarget * basic_buffer;
 
-        SceneManager * scene_weather;
-        SceneManager * scene_fengbaochao;
+        SceneManager *scene_weather;
+        SceneManager *scene_fengbaochao;
+
         fbcManager * fbcManager_;
 
         Globe() :earthRadius(0), earthshape(NULL), main_camera(NULL), basic_buffer(NULL) {}
@@ -50,7 +51,7 @@ namespace app
             main_camera = new VirtualGlobeScene::MomentumCamera(earthshape);//should release
             main_camera->set_viewport(vec4i(0, 0, w, h));
 
-            fbcManager_ = new fbcManager(scene_fengbaochao, earthshape, main_camera);
+            fbcManager_ = new fbcManager(earthshape, main_camera);
             InitWrapper();//call create_scene
 
             basic_buffer = RenderTargetManager::getInstance().CreateRenderTargetFromPreset("basic", "basic_buffer");

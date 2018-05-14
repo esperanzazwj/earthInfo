@@ -65,14 +65,18 @@ public:
 
 	void makePatterns();
 	void initializeTestMesh();
+
 	//新添加载模型函数
 	void initializeSpeedData();
 	void readAllSpeedDataIntoPool();
-	void updateSpeedData(int kth);
-	void addSpeedDataIntoSceneManager(SceneManager* scene_manager, const string &name);
+	void updateSpeedData(int dataID);
+	void transformToKthFrame(int dataID, int kthFrame);
 
     void initializeTempData();
     void initializePressData();
+	//新添加更新函数
+	void addPass(Pass *pass);
+	void updatePass();
 
 	int id;
 	int pat[numx][numy][32];
@@ -89,13 +93,13 @@ public:
 	int PressureData2[sizex][sizey];
 
 	//新添模型speed
-	const int speedDataNum = 48;
+	const int speedDataNum = 1;
 	vector<Mesh<P3_C4, int>*> speedMeshes;
 	vector<double*> speedDataPool;
 
 	Mesh<P3_C4 ,int > *_mesh;
 	Mesh<P3_C4 ,short > *_cutmesh;
-    Pass* fbc_pass{};
+    Pass* fbc_pass;
 	//ptr<Program> _program;
 	//ptr<UniformMatrix4f> viewportTansMatrix;
 	//ptr<Uniform4f> funcFS;

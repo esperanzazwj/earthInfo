@@ -394,10 +394,13 @@ using namespace std;
 		}
 	}
 
-	void FengBaoChao::updateSpeedData(int kth)
+	void FengBaoChao::updateSpeedData(int dataID)
 	{
+
+		//updatedata()
+
 		//下面的代码都是从原始数据计算顶点属性数据
-		double *dataInSpeedDataPool = speedDataPool[kth];
+		double *dataInSpeedDataPool = speedDataPool[dataID];
 		int idx = 0;
 		for (int y = 0; y < numy; y++)
 		{
@@ -414,17 +417,41 @@ using namespace std;
 			for (int j = 0; j < numy; j++)
 			{
 				HSV[i][j][0] = (float)(atan2(vel[i][j][1], vel[i][j][0]) * 180.0 / M_PI);
-				if (HSV[i][j][0] < 0) HSV[i][j][0] = HSV[i][j][0] + 360.0;
+				if (HSV[i][j][0] < 0) 
+					HSV[i][j][0] = HSV[i][j][0] + 360.0;
 				int s1 = (int)(vel[i][j][1] * vel[i][j][1] + vel[i][j][0] * vel[i][j][0]);
 				HSV[i][j][1] = (1.0f - (float)sqrt(s1 / 606.0f));
+				assert(HSV[i][j][0] >= 0 && HSV[i][j][0] <= 360);
+				assert(HSV[i][j][1] >= 0 && HSV[i][j][1] <= 1);
 			}
 		}
 
+		for (int i = 0; i < numx; i++)
+		{
+			for (int j = 0; j < numy; j++)
+			{
+				vpat2[i][j] = 0;
+			}
+		}
+
+		//test 
+		for (int i = 0; i < 10; i++)
+		{
+			transformToKthFrame(dataID, i);
+		}
+	}
+
+	void FengBaoChao::transformToKthFrame(int dataID, int kthFrame)
+	{
+		//trans()
 		vec3f *vertexPos = new vec3f[numx*numy];
 		vec4f *vertexCol = new vec4f[numx*numy];
+
 		//噪声融合更新
 		float ss;
+		//use vpat2 and vel to update vpat1
 		getDP();
+		//use vpat1 and pat to update vpat2
 		for (int i = 0; i < numx; i++)
 		{
 			for (int j = 0; j < numy; j++)
@@ -436,8 +463,11 @@ using namespace std;
 				ss = 0.9f * vpat1[i][j] + 0.1f * pat[i][j][iframe % 32];
 				vpat2[i][j] = (int)ss < 255 ? (int)ss : 255;
 				HSV[i][j][2] = vpat2[i][j] / 255.0f;
+				assert(HSV[i][j][2] >= 0 && HSV[i][j][2] <= 1);
+				//HSV[i][j][2] = 0.5;
 			}
 		}
+		//copy vpat2 to vpat
 		filter();
 		HSV2RGB();
 
@@ -453,19 +483,13 @@ using namespace std;
 		//设置顶点属性
 		for (int i = 0; i < numx*numy; i++)
 		{
-			speedMeshes[kth]->setVertex(i, P3_C4(vertexPos[i], vertexCol[i]));
+			speedMeshes[dataID]->setVertex(i, P3_C4(vertexPos[i], vertexCol[i]));
 		}
 
 		delete[]vertexPos;
 		delete[]vertexCol;
 	}
-	
-	//将SpeedMeshes数据加载到SceneManager
-	void FengBaoChao::addSpeedDataIntoSceneManager(SceneManager* scene_manager, const string &name)
-	{
-		//这里先加载一个模型作为测试
-		speedMeshes[0]->createSceneNode(scene_manager, name);
-	}
+
 
 	//读取温度，压力数据
 	void FengBaoChao::initializeTempData()
@@ -476,6 +500,51 @@ using namespace std;
 	void FengBaoChao::initializePressData()
 	{
 		//待实现
+	}
+
+	void FengBaoChao::addPass(Pass *pass)
+	{
+		fbc_pass = pass;
+	}
+
+	void FengBaoChao::updatePass()
+	{
+		if (_status == 0)
+		{
+			return;
+		}
+		if (_status == 1)
+		{
+			iframe++;
+		}
+
+		auto mat4fToMatrix4 = [](mat4f m) {
+			Matrix4 matrix;//transpose
+			for (int i = 0; i < 4; i++)
+			{
+				for (int j = 0; j < 4; j++)
+				{
+					matrix[i][j] = m[j][i];
+				}
+			}
+			return matrix;
+		};
+
+		mat4f worldToCamera = _mainCamera->m_view_matrix();
+		vec3d eyed = _mainCamera->reference_center();
+		Vector3 eyef = Vector3(eyed.x, eyed.y, eyed.z);
+		mat4f cameraToScreen = _mainCamera->m_absolute_projection_matrix();
+		mat4f worldToScreen = cameraToScreen * worldToCamera;
+		auto worldToScreenMatrix4 = mat4fToMatrix4(worldToScreen);
+		fbc_pass->setProgramConstantData("og_modelViewPerspectiveMatrix", worldToScreenMatrix4.ptr(), "mat4", sizeof(Matrix4));
+		fbc_pass->setProgramConstantData("u_cam", eyef.ptr(), "vec3", sizeof(Vector3));
+		//fbc_pass->mBlendState = BlendState(true, BLEND_OP_ADD, BLEND_SRC_ALPHA, BLEND_INV_SRC_ALPHA);//INV可能是错的
+		b_cut = false;
+		if (!b_cut)
+			fbc_pass->setProgramConstantData("func", Vector4(0, 0, 0, 0).ptr(), "vec4", sizeof(Vector4));
+		else
+			fbc_pass->setProgramConstantData("func", Vector4(func.x, func.y, func.z, func.w).ptr(), "vec4", sizeof(Vector4));
+		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	}
 
 	void FengBaoChao::cut()
@@ -611,7 +680,7 @@ using namespace std;
 		memcpy(vpat, vpat2, sizeof(vpat2));
 	}
  
-	//update vpat1?
+	//use vpat2 and vel to update vpat1?
 	void FengBaoChao::getDP()
 	{
 		float vx, vy, r; //float dx, dy;
@@ -993,18 +1062,20 @@ using namespace std;
 		{
 			for (j = 0; j < numy; j++)
 			{
-				int RandKey = rand()%255;
-				phase[i][ j] = RandKey;
+				int RandKey = rand() % 255;
+				phase[i][j] = RandKey;
 			}
 		}
 		for (k = 0; k < 32; k++)
 		{
 			t = k * 256 / 32;
 			for (i = 0; i < numx; i++)
+			{
 				for (j = 0; j < numy; j++)
 				{
-					pat[i][j][k] = lut[(t + phase[i][ j]) % 255];
+					pat[i][j][k] = lut[(t + phase[i][j]) % 255];//0 or 255
 				}
+			}
 		}
 	}
 

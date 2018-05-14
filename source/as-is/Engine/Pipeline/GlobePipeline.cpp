@@ -195,12 +195,13 @@ void fbcEffect::Init()
     auto mainwindow = rt_mgr.get("MainWindow");
     fbc_pass = PassManager::getInstance().LoadPass("fbc_pass", "fengbaochao/fengbaochao.json");
     fbc_pass->renderTarget = mainwindow;
-    fbcManager_->fbc_->fbc_pass = fbc_pass;
+    fbcManager_->addPassToFengBaoChao(fbc_pass);
 }
 
 void fbcEffect::Update()
 {
-    fbcManager_->fbc_->update();
+    //fbcManager_->fbc_->update();
+    fbcManager_->update();
     auto scene = SceneContainer::getInstance().get(in_scenename);
     auto camera = scene->getCamera(in_cameraname);
 
@@ -245,7 +246,7 @@ void GlobePipeline::Init()
         fbc_effect->in_scenename = "scene_fengbaochao";
         fbc_effect->in_cameraname = "main";
         fbc_effect->Init();
-        passGraph.AttachEffect(fx_main_raycasted);
+        //passGraph.AttachEffect(fx_main_raycasted);
         //passGraph.AttachEffect(weather_effect);
         passGraph.AttachEffect(fbc_effect);
         passGraph.PrintGraph();

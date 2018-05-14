@@ -3,6 +3,7 @@
 #include "../../fengbaochao/fengbaochao.h"
 #include "../../fengbaochao/Mesh.h"
 #include "../../fengbaochao/Types.h"
+#include <sstream>
 
 class fbcManager {
 public:
@@ -10,7 +11,7 @@ public:
     FengBaoChao * fbc_;
     //SceneManager * scene_fengbaochao;
 
-    fbcManager(SceneManager* scene_fengbaochao, Ellipsoid * earthshape, MomentumCamera* maincamera)
+    fbcManager(Ellipsoid * earthshape, MomentumCamera* maincamera)
         //:scene_fengbaochao(scene_fengbaochao)
     {
         //val = 1;
@@ -39,11 +40,24 @@ public:
         fbc_->initializePressData();
     }
 
-    void addFengBaoChaoDataToSceneManager(SceneManager* scene_manager, const string &name)
+    void addFengBaoChaoDataToSceneManager(SceneManager* scene_manager, const string &name_root)
     {
-        fbc_->addSpeedDataIntoSceneManager(scene_manager, name);
+		ostringstream name_root_speed;
+		name_root_speed << name_root << "_speed";
+		cout << name_root_speed.str();
+		Mesh<P3_C4,int>::loadMeshesToSceneManager(scene_manager, fbc_->speedMeshes, name_root_speed.str());
         //先只加载speed作为测试
     }
+
+	void addPassToFengBaoChao(Pass *pass)
+	{
+		fbc_->addPass(pass);
+	}
+
+	void update()
+	{
+		fbc_->updatePass();
+	}
 
     void LoadMesh()
     {

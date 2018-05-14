@@ -174,7 +174,7 @@ void RenderStrategy::RenderPass(Camera* camera, RenderQueue & renderqueue, Pass*
 	for (auto& x : renderqueue) {
 		if (x.asMesh == NULL) continue;
 		auto uniformGetter = GlobalResourceManager::getInstance().m_PerObjectUniformGetter;
-		uniformGetter->GetAndSetUniforms(pass->mPerObjectUniform,pass,x.entity,camera,x.asMesh->material,program,texture_count);
+		uniformGetter->GetAndSetUniforms(pass->mPerObjectUniform, pass, x.entity, camera, x.asMesh->material, program, texture_count);
 		auto& currentGeo = x.asMesh->renderable;
 		if (currentGeo == NULL) {
 			auto g = GlobalResourceManager::getInstance().m_GeometryFactory;

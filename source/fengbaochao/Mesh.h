@@ -2,6 +2,7 @@
 #define _ORK_MESH_H_
 
 #include <cstring>
+#include <sstream>
 #include "Types.h"
 #include "../as-is/Engine/Geometry.h"
 #include "../as-is/Engine/SubMesh.h"
@@ -86,7 +87,7 @@ public:
     }
 
     //below four functions used for creating meshes
-    inline as_Geometry* createGeometry(const string &name)
+    as_Geometry* createGeometry(const string &name)
     {
         as_Geometry* geometry = new as_Geometry();
         geometry->name = name;
@@ -95,6 +96,7 @@ public:
         geometry->mNumBones = 0;
 
         assert(verticesCount == vertices.size());
+        cout << "verticesCount=" << verticesCount << endl;
         //very slow(need refine)
         for (int k = 0; k < verticesCount; k++)
         {
@@ -106,7 +108,9 @@ public:
             geometry->normal.push_back(vertices[k]._c.z);
             geometry->normal.push_back(vertices[k]._c.w);
         }
+
         assert(indicesCount == indices.size());
+        cout << "indicesCount=" << indicesCount << endl;
         for (int k = 0; k < indicesCount; k++)
         {
             geometry->indices.push_back(indices[k]);
@@ -115,7 +119,7 @@ public:
         return geometry;
     }
 
-    inline MeshPtr genMeshPtr(const string &name)
+    MeshPtr genMeshPtr(const string &name)
     {
         //only geometries and meshes
         vector<as_Geometry*> geos;
@@ -145,7 +149,7 @@ public:
         return MeshPtr(mesh);
     }
 
-    inline MeshPtr createMeshPtr(const string& name)
+    MeshPtr createMeshPtr(const string& name)
     {
         auto meshMgr = MeshManager::getSingletonPtr();
         auto mesh_ = meshMgr->getMeshByName(name);
@@ -157,11 +161,10 @@ public:
     }
 
     //you can create a scene for a scene_manager here
-    inline SceneNode* createSceneNode(SceneManager* scene_manager, const string &name)
+    SceneNode* createSceneNode(SceneManager* scene_manager, const string &name)
     {
         MeshPtr mesh = createMeshPtr(name);
         if (mesh == NULL) return NULL;
-
         Entity* entity = scene_manager->getEntity(name);
         if (entity == NULL)
             entity = scene_manager->CreateEntity(name);
@@ -172,6 +175,26 @@ public:
             snode->attachMovable(entity);
         }
         return snode;
+    }
+public:
+    static void loadMeshesToSceneManager(SceneManager* scene_manager, vector<Mesh<vertex, index>*> &meshes, const string &name_root)
+    {
+        auto sceneRoot = scene_manager->GetSceneRoot();
+        auto objectNode = scene_manager->CreateSceneNode("objectNode");
+        sceneRoot->attachNode(objectNode);
+
+        int numOfMeshes = meshes.size();
+        for (int k = 0; k < numOfMeshes; k++)
+        {
+            auto mesh = meshes[k];
+            assert(mesh != NULL);
+            ostringstream name;
+            name << name_root << "_" << k << endl;
+            cout << name.str() << endl;
+            auto snode = mesh->createSceneNode(scene_manager, name.str());
+            assert(snode != NULL);
+            objectNode->attachNode(snode);
+        }
     }
 
 private:

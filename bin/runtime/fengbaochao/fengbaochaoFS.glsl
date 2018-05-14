@@ -6,8 +6,9 @@ void main()
 {
     if(abs(func.x + func.y + func.z) >0.01)
     {
-	if(worldPosition.x * func.x + worldPosition.y* func.y + worldPosition.z* func.z + func.w < 0)
-	discard;
+		if(worldPosition.x * func.x + worldPosition.y* func.y + worldPosition.z* func.z + func.w < 0)
+			discard;
     }
     fragmentColor = _col;
+	//fragmentColor = vec4(1);
 }
