@@ -1,4 +1,5 @@
 #include "fengbaochao.h"
+#include "../as-is/Engine/OpenglDriver/GLGeometry.h"
 //#include "Util.h"
 #include <iostream>
 #include <fstream>
@@ -44,6 +45,10 @@ using namespace std;
 		b_cut = false;
         _earthshape = earthshape;
         _mainCamera = mainCamera;
+		//new intializer
+		speedMesh = NULL;
+		speedDataPool.clear();
+		speedDataEntity = NULL;
 	}
 
 	FengBaoChao::~FengBaoChao()
@@ -341,32 +346,36 @@ using namespace std;
 		//从文件中读取所有的speed数据到DataPool中，共speedDataNum个
 		readAllSpeedDataIntoPool();
 
-		speedMeshes.resize(speedDataNum);
+		//初始化SpeedMesh
+		speedMesh = new Mesh<P3_C4, int>(VirtualGlobeRender::TRIANGLES, VirtualGlobeRender::GPU_DYNAMIC);
+		speedMesh->setCapacity(numx*numy, (numx - 1)*(numy - 1) * 6);
 
-		//将DataPool中的原始speed数据读入speedMeshes中，解码为顶点属性以及索引信息
-		for (int x = 0; x < speedDataNum; x++)
+		//设置索引
+		int js = 0;
+		for (int s = 0; s < 200; s++)
 		{
-			speedMeshes[x] = new Mesh<P3_C4, int>(VirtualGlobeRender::TRIANGLES, VirtualGlobeRender::GPU_DYNAMIC);
-			speedMeshes[x]->setCapacity(numx*numy, (numx - 1)*(numy - 1) * 6);
-			
-			//设置索引
-			int js = 0;
-			for (int s = 0; s < 200; s++)
+			for (int k = 0; k < 300; k++)
 			{
-				for (int k = 0; k < 300; k++)
-				{
-					speedMeshes[x]->setIndice(js, s * 301 + k + 301);
-					speedMeshes[x]->setIndice(js + 1, s * 301 + k + 1);
-					speedMeshes[x]->setIndice(js + 2, s * 301 + k + 0);
-					speedMeshes[x]->setIndice(js + 3, s * 301 + k + 301);
-					speedMeshes[x]->setIndice(js + 4, s * 301 + k + 302);
-					speedMeshes[x]->setIndice(js + 5, s * 301 + k + 1);
-					js = js + 6;
-				}
+				speedMesh->setIndice(js, s * 301 + k + 301);
+				speedMesh->setIndice(js + 1, s * 301 + k + 1);
+				speedMesh->setIndice(js + 2, s * 301 + k + 0);
+				speedMesh->setIndice(js + 3, s * 301 + k + 301);
+				speedMesh->setIndice(js + 4, s * 301 + k + 302);
+				speedMesh->setIndice(js + 5, s * 301 + k + 1);
+				js = js + 6;
 			}
-			//设置顶点属性信息
-			updateSpeedData(x);
-		}	
+		}
+
+		for (int i = 0; i < numx; i++)
+		{
+			for (int j = 0; j < numy; j++)
+			{
+				vpat2[i][j] = 0;
+			}
+		}
+
+		//设置顶点属性信息
+		//updateSpeedData(0);
 	}
 
 	void FengBaoChao::readAllSpeedDataIntoPool()
@@ -421,27 +430,20 @@ using namespace std;
 					HSV[i][j][0] = HSV[i][j][0] + 360.0;
 				int s1 = (int)(vel[i][j][1] * vel[i][j][1] + vel[i][j][0] * vel[i][j][0]);
 				HSV[i][j][1] = (1.0f - (float)sqrt(s1 / 606.0f));
-				assert(HSV[i][j][0] >= 0 && HSV[i][j][0] <= 360);
-				assert(HSV[i][j][1] >= 0 && HSV[i][j][1] <= 1);
+				//assert(HSV[i][j][0] >= 0 && HSV[i][j][0] <= 360);
+				//assert(HSV[i][j][1] >= 0 && HSV[i][j][1] <= 1);
 			}
 		}
 
-		for (int i = 0; i < numx; i++)
-		{
-			for (int j = 0; j < numy; j++)
-			{
-				vpat2[i][j] = 0;
-			}
-		}
-
+		//transformToKthFrame(0, 0);
 		//test 
-		for (int i = 0; i < 10; i++)
+		for (int i = 0; i < 1; i++)
 		{
-			transformToKthFrame(dataID, i);
+			//transformToKthFrame(dataID, i);
 		}
 	}
 
-	void FengBaoChao::transformToKthFrame(int dataID, int kthFrame)
+	void FengBaoChao::transformToKthFrame()
 	{
 		//trans()
 		vec3f *vertexPos = new vec3f[numx*numy];
@@ -483,13 +485,34 @@ using namespace std;
 		//设置顶点属性
 		for (int i = 0; i < numx*numy; i++)
 		{
-			speedMeshes[dataID]->setVertex(i, P3_C4(vertexPos[i], vertexCol[i]));
+			speedMesh->setVertex(i, P3_C4(vertexPos[i], vertexCol[i]));
+			speedMesh->position[i * 3] = vertexPos[i].x;
+			speedMesh->position[i * 3 + 1] = vertexPos[i].y;
+			speedMesh->position[i * 3 + 2] = vertexPos[i].z;
+			speedMesh->color[i * 4] = vertexCol[i].x;
+			speedMesh->color[i * 4 + 1] = vertexCol[i].y;
+			speedMesh->color[i * 4 + 2] = vertexCol[i].z;
+			speedMesh->color[i * 4 + 3] = vertexCol[i].w;
 		}
 
 		delete[]vertexPos;
 		delete[]vertexCol;
 	}
 
+	void FengBaoChao::updateGPUData()
+	{
+		auto entity = speedDataEntity;
+		for (auto& y : entity->getMesh()->m_SubMeshList_as) 
+		{
+			auto mesh = y.second;
+			auto &currentGeo = mesh->renderable;
+			assert(mesh->renderable != NULL);
+			GLGeometry *geo = dynamic_cast<GLGeometry*>(mesh->renderable);
+			assert(geo != NULL);
+			const GL_GPUVertexData &vertexData = geo->getGLGPUVertexData();
+			speedMesh->updateGPUVertexData(vertexData);
+		}
+	}
 
 	//读取温度，压力数据
 	void FengBaoChao::initializeTempData()
@@ -513,11 +536,21 @@ using namespace std;
 		{
 			return;
 		}
+
 		if (_status == 1)
 		{
+			if (iframe % 100 == 0)
+			{
+				updateSpeedData(speedDataIdx);
+				speedDataIdx = (speedDataIdx + 1) % speedDataNum;
+				cout << "update speed data" << endl;
+			}
+
 			iframe++;
+			if (iframe > 1000000)iframe = 0;
 		}
 
+		
 		auto mat4fToMatrix4 = [](mat4f m) {
 			Matrix4 matrix;//transpose
 			for (int i = 0; i < 4; i++)
@@ -547,6 +580,30 @@ using namespace std;
 		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	}
 
+	void FengBaoChao::createDataEntity(SceneManager* scene_manager, const string &name)
+	{
+		speedDataEntity = speedMesh->createEntity(scene_manager, name);
+	}
+
+	void FengBaoChao::addDataToRenderQueue(RenderQueue & renderQueue)
+	{
+		auto entity = speedDataEntity;
+		for (auto& y : entity->getMesh()->m_SubMeshList_as) {
+			auto mesh = y.second;
+
+			RenderQueueItem item;
+			item.entity = entity;
+			item.asMesh = mesh;
+			auto& currentGeo = item.asMesh->renderable;
+			if (currentGeo == NULL) {
+				auto g = GlobalResourceManager::getInstance().m_GeometryFactory;
+				currentGeo = g->create(item.asMesh->geometry, fbc_pass->mInputLayout);
+			}
+			renderQueue.push_back(item);
+		}
+	}
+
+///////////////////////////////////////////////////////////////////////////////////////////
 	void FengBaoChao::cut()
 	{
 		b_cutterMaking = true;

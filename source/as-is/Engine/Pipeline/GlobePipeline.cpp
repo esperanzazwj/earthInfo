@@ -206,9 +206,13 @@ void fbcEffect::Update()
     auto camera = scene->getCamera(in_cameraname);
 
     RenderQueue queue;
-    scene->getVisibleRenderQueue_as(camera, queue);
+    fbcManager_->fbc_->addDataToRenderQueue(queue);
+   // scene->getVisibleRenderQueue_as(camera, queue);
     fbc_pass->camera = camera;
     fbc_pass->queue = queue;
+
+    fbcManager_->fbc_->transformToKthFrame();
+    fbcManager_->fbc_->updateGPUData();
 }
 
 void fbcEffect::GetInputPasses(vector<Pass*>& passes, vector<pair<Pass*, Pass*>>& /*inputPasses*/, vector<pair<Texture*&, Texture*&>>& inputTexture)

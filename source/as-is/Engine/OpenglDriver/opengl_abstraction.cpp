@@ -3,12 +3,13 @@
 #include "EGLUtil.h"
 
 
-
+//check
 void CreateVertexBuffer(vector<float>& data, GLuint& vbo)
 {
 	glGenBuffers(1, &vbo);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glBufferData(GL_ARRAY_BUFFER, data.size() * sizeof (float), &data[0], GL_STATIC_DRAW);
+	//glBufferData(GL_ARRAY_BUFFER, data.size() * sizeof (float), &data[0], GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, data.size() * sizeof(float), &data[0], GL_STREAM_DRAW);
 	GL_CHECK();
 }
 
@@ -16,7 +17,8 @@ void CreateVertexBuffer(vector<int>& data, GLuint& vbo)
 {
 	glGenBuffers(1, &vbo);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glBufferData(GL_ARRAY_BUFFER, data.size() * sizeof (int), &data[0], GL_STATIC_DRAW);
+	//glBufferData(GL_ARRAY_BUFFER, data.size() * sizeof (int), &data[0], GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, data.size() * sizeof(int), &data[0], GL_STREAM_DRAW);
 	GL_CHECK();
 }
 

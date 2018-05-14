@@ -117,7 +117,8 @@ namespace app
             scene_weather->LoadSceneFromConfig("model/earth_plane/plane_scene.json");
             //fbcManager_->fbc_->_mesh->createSceneNode(scene_fengbaochao, "fengbaochao");
             fbcManager_->prepareFengBaoChaoData();
-            fbcManager_->addFengBaoChaoDataToSceneManager(scene_fengbaochao, "fengbaochao");
+            //fbcManager_->addFengBaoChaoDataToSceneManager(scene_fengbaochao, "fengbaochao");
+            fbcManager_->fbc_->createDataEntity(scene_fengbaochao, "fengbaochao");
         }
 
         void UpdateGUI()

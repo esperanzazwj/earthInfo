@@ -30,6 +30,7 @@ public:
 
         fbc_->_status = 1;
         fbc_->iframe = 0;
+        fbc_->speedDataIdx = 0;
         fbc_->makePatterns();
     }
 
@@ -40,14 +41,13 @@ public:
         fbc_->initializePressData();
     }
 
-    void addFengBaoChaoDataToSceneManager(SceneManager* scene_manager, const string &name_root)
+   /* void addFengBaoChaoDataToSceneManager(SceneManager* scene_manager, const string &name_root)
     {
 		ostringstream name_root_speed;
 		name_root_speed << name_root << "_speed";
 		cout << name_root_speed.str();
 		Mesh<P3_C4,int>::loadMeshesToSceneManager(scene_manager, fbc_->speedMeshes, name_root_speed.str());
-        //先只加载speed作为测试
-    }
+    }*/
 
 	void addPassToFengBaoChao(Pass *pass)
 	{

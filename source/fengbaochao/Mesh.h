@@ -8,6 +8,7 @@
 #include "../as-is/Engine/SubMesh.h"
 #include "../as-is/Engine/MeshManager.h"
 #include "../as-is/Engine/SceneManager.h"
+#include "../as-is/Engine/OpenglDriver/GLGeometry.h"
 
 using namespace std;
 
@@ -21,6 +22,8 @@ public:
     {
         vertices.resize(verticesCount);
         indices.resize(indicesCount);
+        position.resize(verticesCount * 3);
+        color.resize(verticesCount * 4);
     }
 
     virtual ~Mesh() {}
@@ -46,6 +49,9 @@ public:
         vertices.resize(verticesCount);
         indicesCount = indicesCount_;
         indices.resize(indicesCount);
+        /////
+        position.resize(verticesCount * 3);
+        color.resize(verticesCount * 4);
     }
 
     void addVertex(const vertex &v)
@@ -145,7 +151,6 @@ public:
             mesh->addSubMesh_as(x);
             g.as_meshManager.add(x);
         }
-
         return MeshPtr(mesh);
     }
 
@@ -160,8 +165,7 @@ public:
         return mesh;
     }
 
-    //you can create a scene for a scene_manager here
-    SceneNode* createSceneNode(SceneManager* scene_manager, const string &name)
+    Entity *createEntity(SceneManager* scene_manager, const string &name)
     {
         MeshPtr mesh = createMeshPtr(name);
         if (mesh == NULL) return NULL;
@@ -169,6 +173,13 @@ public:
         if (entity == NULL)
             entity = scene_manager->CreateEntity(name);
         entity->setMesh(mesh);
+        return entity;
+    }
+
+    //you can create a scene for a scene_manager here
+    SceneNode* createSceneNode(SceneManager* scene_manager, const string &name)
+    {
+        Entity* entity = createEntity(scene_manager, name);
         SceneNode* snode = scene_manager->getSceneNode(name);
         if (snode == NULL) {
             snode = scene_manager->CreateSceneNode(name);
@@ -176,8 +187,21 @@ public:
         }
         return snode;
     }
+
+    //写死了
+    void updateGPUVertexData(const GL_GPUVertexData &vertexData)
+    {
+        //as_Geometry* as_geometry = createGeometry("Temp");
+        glBindBuffer(GL_ARRAY_BUFFER, vertexData.vbo[0]);
+       // glBufferSubData(GL_ARRAY_BUFFER, 0, as_geometry->position.size() * sizeof(float), &as_geometry->position[0]);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, position.size() * sizeof(float), &position[0]);
+        glBindBuffer(GL_ARRAY_BUFFER, vertexData.vbo[1]);
+        //glBufferSubData(GL_ARRAY_BUFFER, 0, as_geometry->normal.size() * sizeof(float), &as_geometry->normal[0]);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, color.size() * sizeof(float), &color[0]);
+
+    }
 public:
-    static void loadMeshesToSceneManager(SceneManager* scene_manager, vector<Mesh<vertex, index>*> &meshes, const string &name_root)
+   /* static void loadMeshesToSceneManager(SceneManager* scene_manager, vector<Mesh<vertex, index>*> &meshes, const string &name_root)
     {
         auto sceneRoot = scene_manager->GetSceneRoot();
         auto objectNode = scene_manager->CreateSceneNode("objectNode");
@@ -195,7 +219,7 @@ public:
             assert(snode != NULL);
             objectNode->attachNode(snode);
         }
-    }
+    }*/
 
 private:
     vector<vertex> vertices;
@@ -203,6 +227,10 @@ private:
 
     vector<index>  indices;
     int indicesCount;
+
+public:
+    vector<float> position;//#v * 3
+    vector<float> color;//#v * 4
 };
 
 }

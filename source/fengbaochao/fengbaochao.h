@@ -53,6 +53,33 @@ struct P3_C4
 
 class FengBaoChao
 {
+//新添加函数及成员变量
+public:
+    //speed数据
+    const int speedDataNum = 48;
+    int speedDataIdx;
+    Mesh<P3_C4, int> *speedMesh;
+    vector<double*> speedDataPool;
+    Entity *speedDataEntity;
+
+    //加载speed数据函数
+    void initializeSpeedData();
+    void readAllSpeedDataIntoPool();
+    void updateSpeedData(int dataID);
+    void transformToKthFrame();
+    void updateGPUData();
+
+    void initializeTempData();
+    void initializePressData();
+
+    //更新函数
+    void addPass(Pass *pass);
+    void updatePass();
+
+    //将数据变为可渲染数据
+    void createDataEntity(SceneManager* scene_manager, const string &name);
+    void addDataToRenderQueue(RenderQueue &renderQueue);
+
 public:
 	enum taifengType{
 		Speed=1,
@@ -65,18 +92,6 @@ public:
 
 	void makePatterns();
 	void initializeTestMesh();
-
-	//新添加载模型函数
-	void initializeSpeedData();
-	void readAllSpeedDataIntoPool();
-	void updateSpeedData(int dataID);
-	void transformToKthFrame(int dataID, int kthFrame);
-
-    void initializeTempData();
-    void initializePressData();
-	//新添加更新函数
-	void addPass(Pass *pass);
-	void updatePass();
 
 	int id;
 	int pat[numx][numy][32];
@@ -91,11 +106,6 @@ public:
 	int PressureData[sizex][sizey];
 	int PressureData1[sizex][sizey];
 	int PressureData2[sizex][sizey];
-
-	//新添模型speed
-	const int speedDataNum = 1;
-	vector<Mesh<P3_C4, int>*> speedMeshes;
-	vector<double*> speedDataPool;
 
 	Mesh<P3_C4 ,int > *_mesh;
 	Mesh<P3_C4 ,short > *_cutmesh;

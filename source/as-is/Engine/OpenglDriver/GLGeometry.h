@@ -24,6 +24,8 @@ public:
 	//help func
 	void Draw();
 	void DrawInstance(int num);
+	//newly-added func
+	const GL_GPUVertexData &getGLGPUVertexData() { return gldata; }
 private:
 	GL_GPUVertexData gldata;
 };
