@@ -36,7 +36,7 @@ using namespace std;
 	{
 		id = -1;
 		_status = 0;
-		_curType = Speed;
+		_curType = Temp;
 		_mesh = NULL;
 		_cutmesh = NULL;
 		_loader_thread = false;
@@ -49,6 +49,8 @@ using namespace std;
 		speedMesh = NULL;
 		speedDataPool.clear();
 		speedDataEntity = NULL;
+        tempMesh = NULL;
+        tempDataEntity = NULL;
 	}
 
 	FengBaoChao::~FengBaoChao() {}
@@ -83,8 +85,6 @@ using namespace std;
 				}
 				else
                 {
-                    //QMessageBox::information(NULL,QStringLiteral("错误"),
-                     //   QStringLiteral("数据读取错误"));
                     cout << "error(data read)" << endl;
                 }
 
@@ -101,8 +101,6 @@ using namespace std;
 				}
 				else
                 {
-                    //QMessageBox::information(NULL,QStringLiteral("错误"),
-					//    QStringLiteral("数据读取错误"));
                     cout << "error(data read)" << endl;
                 }
 				delete []data;
@@ -173,8 +171,8 @@ using namespace std;
 					}
 						
 				}
-				else { /*QMessageBox::information(NULL,QStringLiteral("错误"),
-					QStringLiteral("数据读取错误"));*/
+				else
+                {
                     cout << "error (data read)" << endl;
                 }
 				delete []data;
@@ -397,6 +395,132 @@ using namespace std;
 		}
 	}
 
+    //读取温度，压力数据
+    void FengBaoChao::initializeTempData()
+    {
+        //待实现
+        double* data = new double[numx*numy * 20];
+        //这里原版读文件判断的是另一个文件pressure，读的是tv，奇怪
+        if (loadFile("runtime/taifeng/TV.dat", data))
+        {
+            int idx = 0;
+            for (int z = 0; z < 20; z++)
+            {
+                for (int y = 0; y < numy; y++)
+                {
+                    for (int x = 0; x < numx; x++)
+                    {
+                        PData[z][x][y] = data[idx++];
+                    }
+                }
+            }
+
+        }
+        else
+        {
+            cout << "error (data read)" << endl;
+        }
+        delete[]data;
+
+        //初始化TempMesh
+        tempMesh = new Mesh<P3_C4, int>(VirtualGlobeRender::TRIANGLES, VirtualGlobeRender::GPU_DYNAMIC);
+        tempMesh->setCapacity(numx*numy * 20, (numx - 1)*(numy - 1) * 6 * 20);
+
+
+        //生成绘制索引数组
+        int js = 0;
+        for (int t = 0; t < 20; t++)
+        {
+            for (int s = 0; s < 200; s++)
+            {
+                for (int k = 0; k < 300; k++)
+                {
+                    int base = t * numx*numy;
+                    tempMesh->setIndice(js, s * 301 + k + 301 + base);
+                    tempMesh->setIndice(js + 1, s * 301 + k + 1 + base);
+                    tempMesh->setIndice(js + 2, s * 301 + k + 0 + base);
+
+                    tempMesh->setIndice(js + 3, s * 301 + k + 301 + base);
+                    tempMesh->setIndice(js + 4, s * 301 + k + 302 + base);
+                    tempMesh->setIndice(js + 5, s * 301 + k + 1 + base);
+
+                    js = js + 6;
+                }
+            }
+        }
+
+        vec3f *vertexPos = new vec3f[numx * numy * 20];
+        tempCol = new vec4f[numx*numy * 20];
+
+        for (int z = 0; z < 20; z++)
+        {
+            for (int x = 0; x < numx; x++)
+            {
+                for (int y = 0; y < numy; y++)
+                {
+                    Geodetic3D llh = Geodetic3D(radians((x - 4) / 10.0f + 110), radians((y - 0) / 10.0f + 15), 3000 * z);
+                    vec3d p = _earthshape->ToVector3D(llh);
+                    vertexPos[z*numx*numy + y * numx + x] = vec3f(p.x, p.y, p.z);
+
+                    //TV速度场着色设定
+                    if (PData[z][x][y] < 0)// || x < 100)
+                    {
+                        tempCol[z*numx*numy + y * numx + x] = vec4f(0, 0, 0, 0);
+                    }
+                    else if (PData[z][x][y]> 20)
+                    {
+                        tempCol[z*numx*numy + y * numx + x] = vec4f(1.0, 0, 0, 127.0 / 255.0);
+                    }
+                    else
+                    {
+                        int yu = (int)(20 - PData[z][x][y]) / 5 + 1;
+                        vec4f cv;
+                        switch (yu)
+                        {
+                        case 1:
+                            cv = vec4f(1.0, (20.0 - PData[z][x][y]) / 5.0, 0, 0.5);
+                            break;
+                        case 2:
+                            cv = vec4f(1.0 - (float)(20 - PData[z][x][y] - 5) / 5.0, 255, 0, 0.5);
+                            break;
+                        case 3:
+                            cv = vec4f(0, 1.0, (float)(20 - PData[z][x][y] - 10) / 5.0, 0.5);
+                            break;
+                        case 4:
+                        case 5:
+                            cv = vec4f(0, 1.0 - (float)(20 - PData[z][x][y] - 15) / 5.0, 255, 0.5);
+                            break;
+                        default:
+                            cv = vec4f(0, 1.0, 1.0, 0.5);
+                            break;
+                        }
+                        tempCol[z*numx*numy + y * numx + x] = cv;
+                    }
+
+                }
+            }
+        }
+        for (int i = 0; i< numx*numy * 20; i++)
+        {
+            tempMesh->setVertex(i, P3_C4(vertexPos[i], tempCol[i]));
+            tempMesh->position[i * 3] = vertexPos[i].x;
+            tempMesh->position[i * 3 + 1] = vertexPos[i].y;
+            tempMesh->position[i * 3 + 2] = vertexPos[i].z;
+            tempMesh->color[i * 4] = tempCol[i].x;
+            tempMesh->color[i * 4 + 1] = tempCol[i].y;
+            tempMesh->color[i * 4 + 2] = tempCol[i].z;
+            tempMesh->color[i * 4 + 3] = tempCol[i].w;
+        }
+
+        delete[]vertexPos;
+        delete[]tempCol;
+    }
+
+    void FengBaoChao::initializePressData()
+    {
+        //待实现
+    }
+
 	void FengBaoChao::updateSpeedData(int dataID)
 	{
 
@@ -440,83 +564,101 @@ using namespace std;
 	void FengBaoChao::transformToKthFrame()
 	{
 		//trans()
-		vec3f *vertexPos = new vec3f[numx*numy];
-		vec4f *vertexCol = new vec4f[numx*numy];
+        switch (_curType)
+        {
+        case Speed:
+        {
+            vec3f * vertexPos = new vec3f[numx*numy];
+            vec4f *vertexCol = new vec4f[numx*numy];
 
-		//噪声融合更新
-		float ss;
-		//use vpat2 and vel to update vpat1
-		getDP();
-		//use vpat1 and pat to update vpat2
-		for (int i = 0; i < numx; i++)
-		{
-			for (int j = 0; j < numy; j++)
-			{
-				Geodetic3D llh = Geodetic3D(radians((i - 4) / 10.0f + 110), radians((j - 0) / 10.0f + 15), (double)HData[i][j]);
-				vec3d p = _earthshape->ToVector3D(llh);
-				vertexPos[j * numx + i] = vec3f(p.x, p.y, p.z);
-				//有个问题，一个数据文件产生的数据是每一帧都要变？
-				ss = 0.9f * vpat1[i][j] + 0.1f * pat[i][j][iframe % 32];
-				vpat2[i][j] = (int)ss < 255 ? (int)ss : 255;
-				HSV[i][j][2] = vpat2[i][j] / 255.0f;
-				assert(HSV[i][j][2] >= 0 && HSV[i][j][2] <= 1);
-				//HSV[i][j][2] = 0.5;
-			}
-		}
-		//copy vpat2 to vpat
-		filter();
-		HSV2RGB();
+            //噪声融合更新
+            float ss;
+            //use vpat2 and vel to update vpat1
+            getDP();
+            //use vpat1 and pat to update vpat2
+            for (int i = 0; i < numx; i++)
+            {
+                for (int j = 0; j < numy; j++)
+                {
+                    Geodetic3D llh = Geodetic3D(radians((i - 4) / 10.0f + 110), radians((j - 0) / 10.0f + 15), (double)HData[i][j]);
+                    vec3d p = _earthshape->ToVector3D(llh);
+                    vertexPos[j * numx + i] = vec3f(p.x, p.y, p.z);
+                    //有个问题，一个数据文件产生的数据是每一帧都要变？
+                    ss = 0.9f * vpat1[i][j] + 0.1f * pat[i][j][iframe % 32];
+                    vpat2[i][j] = (int)ss < 255 ? (int)ss : 255;
+                    HSV[i][j][2] = vpat2[i][j] / 255.0f;
+                    assert(HSV[i][j][2] >= 0 && HSV[i][j][2] <= 1);
+                    //HSV[i][j][2] = 0.5;
+                }
+            }
+            //copy vpat2 to vpat
+            filter();
+            HSV2RGB();
 
-		//顶点颜色设定
-		for (int i = 0; i < numx; i++)
-		{
-			for (int j = 0; j < numy; j++)
-			{
-				vertexCol[j * numx + i] = vec4f(RGB[i][j][0], RGB[i][j][1], RGB[i][j][2], 150.0 / 255.0);
-			}
-		}
+            //顶点颜色设定
+            for (int i = 0; i < numx; i++)
+            {
+                for (int j = 0; j < numy; j++)
+                {
+                    vertexCol[j * numx + i] = vec4f(RGB[i][j][0], RGB[i][j][1], RGB[i][j][2], 150.0 / 255.0);
+                }
+            }
 
-		//设置顶点属性
-		for (int i = 0; i < numx*numy; i++)
-		{
-			speedMesh->setVertex(i, P3_C4(vertexPos[i], vertexCol[i]));
-			speedMesh->position[i * 3] = vertexPos[i].x;
-			speedMesh->position[i * 3 + 1] = vertexPos[i].y;
-			speedMesh->position[i * 3 + 2] = vertexPos[i].z;
-			speedMesh->color[i * 4] = vertexCol[i].x;
-			speedMesh->color[i * 4 + 1] = vertexCol[i].y;
-			speedMesh->color[i * 4 + 2] = vertexCol[i].z;
-			speedMesh->color[i * 4 + 3] = vertexCol[i].w;
-		}
+            //设置顶点属性
+            for (int i = 0; i < numx*numy; i++)
+            {
+                speedMesh->setVertex(i, P3_C4(vertexPos[i], vertexCol[i]));
+                speedMesh->position[i * 3] = vertexPos[i].x;
+                speedMesh->position[i * 3 + 1] = vertexPos[i].y;
+                speedMesh->position[i * 3 + 2] = vertexPos[i].z;
+                speedMesh->color[i * 4] = vertexCol[i].x;
+                speedMesh->color[i * 4 + 1] = vertexCol[i].y;
+                speedMesh->color[i * 4 + 2] = vertexCol[i].z;
+                speedMesh->color[i * 4 + 3] = vertexCol[i].w;
+            }
 
-		delete[]vertexPos;
-		delete[]vertexCol;
+            delete[]vertexPos;
+            delete[]vertexCol;
+            break;
+        }
+        case Temp:
+            return;
+        case Press:
+            break;
+        default:
+            return;
+        }
+		
 	}
 
 	void FengBaoChao::updateGPUData()
 	{
-		auto entity = speedDataEntity;
-		for (auto& y : entity->getMesh()->m_SubMeshList_as) 
-		{
-			auto mesh = y.second;
-			auto &currentGeo = mesh->renderable;
-			assert(mesh->renderable != NULL);
-			GLGeometry *geo = dynamic_cast<GLGeometry*>(mesh->renderable);
-			assert(geo != NULL);
-			const GL_GPUVertexData &vertexData = geo->getGLGPUVertexData();
-			speedMesh->updateGPUVertexData(vertexData);
-		}
-	}
-
-	//读取温度，压力数据
-	void FengBaoChao::initializeTempData()
-	{
-		//待实现
-	}
-
-	void FengBaoChao::initializePressData()
-	{
-		//待实现
+        switch (_curType)
+        {
+        case Speed:
+        {
+            auto entity = speedDataEntity;
+            for (auto& y : entity->getMesh()->m_SubMeshList_as)
+            {
+                auto mesh = y.second;
+                auto &currentGeo = mesh->renderable;
+                assert(mesh->renderable != NULL);
+                GLGeometry *geo = dynamic_cast<GLGeometry*>(mesh->renderable);
+                assert(geo != NULL);
+                const GL_GPUVertexData &vertexData = geo->getGLGPUVertexData();
+                speedMesh->updateGPUVertexData(vertexData);
+            }
+            break;
+        }
+        case Temp:
+            return;
+        case Press:
+        {
+            break;
+        }
+        default:
+            return;
+        }
 	}
 
 	void FengBaoChao::addPass(Pass *pass)
@@ -533,15 +675,25 @@ using namespace std;
 
 		if (_status == 1)
 		{
-			if (iframe % 100 == 0)
-			{
-				updateSpeedData(speedDataIdx);
-				speedDataIdx = (speedDataIdx + 1) % speedDataNum;
-				cout << "update speed data" << endl;
-			}
+            switch (_curType)
+            {
+            case Speed:
+                if (iframe % 100 == 0)
+                {
+                    updateSpeedData(speedDataIdx);
+                    speedDataIdx = (speedDataIdx + 1) % speedDataNum;
+                    cout << "update speed data" << endl;
+                }
 
-			iframe++;
-			if (iframe > 1000000)iframe = 0;
+                iframe++;
+                if (iframe > 1000000)iframe = 0;
+                break;
+            case Temp:
+                return;
+            default:
+                return;
+            }
+            
 		}
 
 		
@@ -577,11 +729,33 @@ using namespace std;
 	void FengBaoChao::createDataEntity(SceneManager* scene_manager, const string &name)
 	{
 		speedDataEntity = speedMesh->createEntity(scene_manager, name);
+        tempDataEntity = tempMesh->createEntity(scene_manager, name);
 	}
 
 	void FengBaoChao::addDataToRenderQueue(RenderQueue & renderQueue)
 	{
-		auto entity = speedDataEntity;
+        Entity *entity = NULL;
+        switch (_curType)
+        {
+        case Speed:
+        {
+            entity = speedDataEntity;
+            break;
+        }
+        case Temp:
+        {
+            entity = tempDataEntity;
+            break;
+        }
+        case Press:
+        {
+            break;
+        }
+        default:
+            return;
+
+        }
+        
 		for (auto& y : entity->getMesh()->m_SubMeshList_as) {
 			auto mesh = y.second;
 
@@ -880,7 +1054,7 @@ using namespace std;
 		//	render_view_->setActionHandlePlugin(NULL);
 	}
 
-	void FengBaoChao::tran()
+	void FengBaoChao::tran()//transformtokthframe
 	{
 		switch(_curType)
 		{
@@ -990,7 +1164,7 @@ using namespace std;
 		}
 	}
 
-	void FengBaoChao::updatedata()
+	void FengBaoChao::updatedata()//updatespeeddata()
 	{
 		switch(_curType)
 		{

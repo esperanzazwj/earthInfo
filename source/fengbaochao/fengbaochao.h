@@ -62,6 +62,10 @@ public:
     vector<double*> speedDataPool;
     Entity *speedDataEntity;
 
+    //temp数据
+    Mesh<P3_C4, int> *tempMesh;
+    Entity *tempDataEntity;
+
     //加载speed数据函数
     void initializeSpeedData();
     void readAllSpeedDataIntoPool();

@@ -27,8 +27,8 @@ public:
     void initFengBaoChaoSettings()
     {
         srand((unsigned)time(NULL));
-
-        fbc_->_status = 1;
+        // set status
+        fbc_->_status = 2;
         fbc_->iframe = 0;
         fbc_->speedDataIdx = 0;
         fbc_->makePatterns();
