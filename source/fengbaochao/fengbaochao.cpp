@@ -51,13 +51,7 @@ using namespace std;
 		speedDataEntity = NULL;
 	}
 
-	FengBaoChao::~FengBaoChao()
-	{
-		//if(NULL != _loaderThread)
-		//	delete _loaderThread;
-		//if(NULL != _loaderMutex)
-		//	delete _loaderMutex;
-	}
+	FengBaoChao::~FengBaoChao() {}
 
 
 	//读取初始时刻数据
