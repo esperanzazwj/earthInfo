@@ -66,10 +66,19 @@ public:
     Mesh<P3_C4, int> *tempMesh;
     Entity *tempDataEntity;
 
-    //加载speed数据函数
+    //press数据
+    const int pressDataNum = 13;
+    int pressDataIdx;
+    Mesh<P3_C4, int> *pressMesh;
+    vector<int*> pressDataPool;
+    Entity *pressDataEntity;
+
+    //加载数据函数
     void initializeSpeedData();
     void readAllSpeedDataIntoPool();
+    void readAllPressDataIntoPool();
     void updateSpeedData(int dataID);
+    void updatePressData(int dataID);
     void transformToKthFrame();
     void updateGPUData();
 

@@ -36,7 +36,7 @@ using namespace std;
 	{
 		id = -1;
 		_status = 0;
-		_curType = Temp;
+		_curType = Press;
 		_mesh = NULL;
 		_cutmesh = NULL;
 		_loader_thread = false;
@@ -51,6 +51,9 @@ using namespace std;
 		speedDataEntity = NULL;
         tempMesh = NULL;
         tempDataEntity = NULL;
+        pressMesh = NULL;
+        pressDataPool.clear();
+        pressDataEntity = NULL;
 	}
 
 	FengBaoChao::~FengBaoChao() {}
@@ -398,7 +401,6 @@ using namespace std;
     //读取温度，压力数据
     void FengBaoChao::initializeTempData()
     {
-        //待实现
         double* data = new double[numx*numy * 20];
         //这里原版读文件判断的是另一个文件pressure，读的是tv，奇怪
         if (loadFile("runtime/taifeng/TV.dat", data))
@@ -518,7 +520,46 @@ using namespace std;
 
     void FengBaoChao::initializePressData()
     {
-        //待实现
+        readAllPressDataIntoPool();
+
+        pressMesh = new Mesh<P3_C4, int>(VirtualGlobeRender::TRIANGLES, VirtualGlobeRender::GPU_DYNAMIC);
+        pressMesh->setCapacity(sizex*sizey, (sizex - 1)*(sizey - 1) * 6);
+
+        int js = 0;
+        for (int s = 0; s < sizey - 1; s++)
+        {
+            for (int k = 0; k < sizex - 1; k++)
+            {
+                pressMesh->setIndice(js, s * sizex + k + sizex);
+                pressMesh->setIndice(js + 1, s * sizex + k + 1);
+                pressMesh->setIndice(js + 2, s * sizex + k + 0);
+
+                pressMesh->setIndice(js + 3, s * sizex + k + sizex);
+                pressMesh->setIndice(js + 4, s * sizex + k + sizex + 1);
+                pressMesh->setIndice(js + 5, s * sizex + k + 1);
+                js = js + 6;
+            }
+        }
+    }
+
+    void FengBaoChao::readAllPressDataIntoPool()
+    {
+        pressDataPool.resize(pressDataNum);
+
+        char pathName[512];
+
+        for (int k = 0; k < pressDataNum; k++)
+        {
+            sprintf(pathName, "runtime/taifeng/pressure/700-%d.dat", k*6);
+            int *data = new int[sizex* sizey];
+
+            if (!loadIntFile(pathName, data))
+            {
+                cout << "error(data read)" << endl;
+            }
+
+            pressDataPool[k] = data;
+        }
     }
 
 	void FengBaoChao::updateSpeedData(int dataID)
@@ -560,6 +601,18 @@ using namespace std;
 			//transformToKthFrame(dataID, i);
 		}
 	}
+
+    void FengBaoChao::updatePressData(int dataID)
+    {
+        int idx = 0;
+        for (int x = 0;x < sizex;x++)
+        {
+            for (int y = 0;y < sizey;y++)
+            {
+                PressureData[x][y] = pressDataPool[dataID][idx++];
+            }
+        }
+    }
 
 	void FengBaoChao::transformToKthFrame()
 	{
@@ -624,6 +677,60 @@ using namespace std;
         case Temp:
             return;
         case Press:
+        {
+            vec3f* vertexPos = new vec3f[sizex * sizey];
+            vec4f*  vertexCol = new vec4f[sizex*sizey];
+            //中间时刻插值
+            float temp;
+            for (int x = 0; x < sizex; x = x + 1)
+                for (int y = 0; y < sizey; y = y + 1)
+                {
+                    temp = ((32 - (iframe % 32)) * PressureData1[x][y] + (iframe % 32) * PressureData2[x][y]) / 32.0f;
+                    PressureData[x][y] = (int)(temp + 0.5f);
+                }
+
+            for (int i = 0; i < sizex; i++)
+                for (int j = 0; j < sizey; j++)
+                {
+                    Geodetic3D llh = Geodetic3D(radians((j - 154) / 10.0f + 137), radians((i - 140) / 10.0f + 23), (double)PressureData[i][j]);
+                    vec3d p = _earthshape->ToVector3D(llh);
+                    vertexPos[j * sizex + i] = vec3f(p.x, p.y, p.z);
+                    if (PressureData[i][j] == 0 || PressureData[i][j] % 20 >5)
+                        vertexCol[j * sizex + i] = vec4f(0, 0, 0, 0);
+                    else
+                    {
+                        int yu = (int)(3250 - PressureData[i][j]) / 100 + 1;
+                        vec4f cv;
+                        switch (yu)
+                        {
+                        case 1:
+                            cv = vec4f(1.0, (float)(3250 - PressureData[i][j]) * 255 / 25500.0, 0, 0.5);
+                            break;
+                        case 2:
+                            cv = vec4f(1.0 - (float)(3250 - PressureData[i][j] - 100) * 255 / 25500.0, 1.0, 0, 0.5);
+                            break;
+                        case 3:
+                            cv = vec4f(0, 1.0, (float)(3250 - PressureData[i][j] - 200) * 255 / 25500.0, 0.5);
+                            break;
+                        case 4:
+                            cv = vec4f(0, 1.0 - (float)(3250 - PressureData[i][j] - 300) * 255 / 25500, 1.0, 0.5);
+                            break;
+                        }
+                        vertexCol[j * sizex + i] = cv;
+                    }
+
+                }
+
+
+
+            for (int i = 0; i< sizex*sizey; i++)
+            {
+                pressMesh->setVertex(i, P3_C4(vertexPos[i], vertexCol[i]));
+            }
+
+            delete[]vertexPos;
+            delete[]vertexCol;
+        }
             break;
         default:
             return;
@@ -654,6 +761,18 @@ using namespace std;
             return;
         case Press:
         {
+            auto entity = pressDataEntity;
+            for (auto& y : entity->getMesh()->m_SubMeshList_as)
+            {
+                auto mesh = y.second;
+                auto &currentGeo = mesh->renderable;
+                assert(mesh->renderable != NULL);
+                GLGeometry *geo = dynamic_cast<GLGeometry*>(mesh->renderable);
+                assert(geo != NULL);
+                const GL_GPUVertexData &vertexData = geo->getGLGPUVertexData();
+                pressMesh->updateGPUVertexData(vertexData);
+            }
+            break;
             break;
         }
         default:
@@ -690,6 +809,17 @@ using namespace std;
                 break;
             case Temp:
                 return;
+            case Press:
+                if (iframe % 32 == 0)
+                {
+                    updatePressData(pressDataIdx);
+                    pressDataIdx = (pressDataIdx + 1) % pressDataNum;
+                    cout << "update pressure data" << endl;
+                }
+
+                iframe++;
+                if (iframe > 1000000)iframe = 0;
+                break;
             default:
                 return;
             }
@@ -728,8 +858,20 @@ using namespace std;
 
 	void FengBaoChao::createDataEntity(SceneManager* scene_manager, const string &name)
 	{
-		speedDataEntity = speedMesh->createEntity(scene_manager, name);
-        tempDataEntity = tempMesh->createEntity(scene_manager, name);
+        switch (_curType)
+        {
+        case Speed:
+            speedDataEntity = speedMesh->createEntity(scene_manager, name);
+            break;
+        case Temp:
+            tempDataEntity = tempMesh->createEntity(scene_manager, name);
+            break;
+        case Press:
+            pressDataEntity = pressMesh->createEntity(scene_manager, name);
+            break;
+        default:
+            return;
+        }
 	}
 
 	void FengBaoChao::addDataToRenderQueue(RenderQueue & renderQueue)
@@ -749,6 +891,7 @@ using namespace std;
         }
         case Press:
         {
+            entity = pressDataEntity;
             break;
         }
         default:
