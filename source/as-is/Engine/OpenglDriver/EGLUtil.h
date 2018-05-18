@@ -77,7 +77,7 @@ public:
 		case BLEND_INV_SRC_COLOR:
 			return GL_ONE_MINUS_SRC_COLOR;
 		case BLEND_SRC_ALPHA:
-			return GL_ALPHA;
+			return GL_SRC_ALPHA;//here is a mistake
 		case BLEND_INV_SRC_ALPHA:
 			return GL_ONE_MINUS_SRC_ALPHA;
 		case BLEND_DEST_ALPHA:

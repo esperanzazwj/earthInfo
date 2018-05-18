@@ -1,6 +1,6 @@
 #include "CameraBase.h"
 #include "../math/mat4.h"
-#include "GL/glew.h"
+#include "../../library/glew/include/GL/glew.h"
 #include <iostream>
 #pragma comment(lib, "glu32.lib")
 

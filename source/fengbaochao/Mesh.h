@@ -70,7 +70,7 @@ public:
 
     void addIndice(index i)
     {
-        indices.add(v);
+        indices.add(i);
         indicesCount++;
     }
 
