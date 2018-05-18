@@ -51,15 +51,14 @@ namespace app
             main_camera = new VirtualGlobeScene::MomentumCamera(earthshape);//should release
             main_camera->set_viewport(vec4i(0, 0, w, h));
 
-            fbcManager_ = new fbcManager(earthshape, main_camera);
+            //camera controller
+            app::globeInteractive = new GlobeInteractive(w, h, main_camera, earthshape);
+
+            fbcManager_ = new fbcManager(earthshape, main_camera, app::globeInteractive);
             InitWrapper();//call create_scene
 
             basic_buffer = RenderTargetManager::getInstance().CreateRenderTargetFromPreset("basic", "basic_buffer");
             basic_buffer->createInternalRes();
-
-            //camera controller
-            app::globeInteractive = new GlobeInteractive(w, h, main_camera, earthshape);
-
 
             auto& ctx = ss::Window_System::current().context();
             glfwSetScrollCallback(ctx, app::scrollMoveEvent);

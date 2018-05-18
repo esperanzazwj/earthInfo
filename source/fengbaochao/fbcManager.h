@@ -9,13 +9,15 @@ class fbcManager {
 public:
     int val;
     FengBaoChao * fbc_;
+    GlobeInteractive *globeInteractive;
     //SceneManager * scene_fengbaochao;
 
-    fbcManager(Ellipsoid * earthshape, MomentumCamera* maincamera)
+    fbcManager(Ellipsoid * earthshape, MomentumCamera* maincamera, GlobeInteractive *_globeInteractive)
         //:scene_fengbaochao(scene_fengbaochao)
     {
         //val = 1;
         fbc_ = new FengBaoChao(earthshape, maincamera);
+        globeInteractive = _globeInteractive;
         initFengBaoChaoSettings();
         //Init();
         //test
@@ -28,7 +30,7 @@ public:
     {
         srand((unsigned)time(NULL));
         // set status
-        fbc_->_status = 2;
+        fbc_->_status = 1;
         fbc_->iframe = 0;
         fbc_->speedDataIdx = 0;
         fbc_->makePatterns();
@@ -56,7 +58,14 @@ public:
 
 	void update()
 	{
-		fbc_->updatePass();
+        if (fbc_->_curType != globeInteractive->F_Type)
+        {
+            fbc_->_curType = globeInteractive->F_Type;
+            fbc_->iframe = 0;
+            fbc_->speedDataIdx = 0;
+            fbc_->pressDataIdx = 0;
+        }
+        fbc_->updatePass();
 	}
 
     void LoadMesh()

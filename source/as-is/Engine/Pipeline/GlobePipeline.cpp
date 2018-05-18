@@ -118,6 +118,7 @@ void RayCastedGlobeEffect::Init()
     auto mainwindow = rt_mgr.get("MainWindow");
     RayCastedGlobe_pass = PassManager::getInstance().LoadPass("RayCastedGlobe_pass", "RayCastedGlobe/RayCastedGlobe_prog.json");
     RayCastedGlobe_pass->renderTarget = mainwindow;
+	RayCastedGlobe_pass->mBlendState.mBlendEnable = false;
 }
 
 void RayCastedGlobeEffect::Update()
@@ -193,9 +194,10 @@ void fbcEffect::Init()
 {
     auto& rt_mgr = RenderTargetManager::getInstance();
     auto mainwindow = rt_mgr.get("MainWindow");
-    fbc_pass = PassManager::getInstance().LoadPass("fbc_pass", "fengbaochao/fengbaochao.json");
+    fbc_pass = PassManager::getInstance().LoadPass("zwj_fbc_pass", "fengbaochao/fengbaochao.json");
     fbc_pass->renderTarget = mainwindow;
     fbcManager_->addPassToFengBaoChao(fbc_pass);
+	fbc_pass->mClearState.clearFlag = false;
 }
 
 void fbcEffect::Update()
@@ -250,7 +252,7 @@ void GlobePipeline::Init()
         fbc_effect->in_scenename = "scene_fengbaochao";
         fbc_effect->in_cameraname = "main";
         fbc_effect->Init();
-        //passGraph.AttachEffect(fx_main_raycasted);
+        passGraph.AttachEffect(fx_main_raycasted);
         //passGraph.AttachEffect(weather_effect);
         passGraph.AttachEffect(fbc_effect);
         passGraph.PrintGraph();

@@ -1,12 +1,10 @@
 #include "fengbaochao.h"
 #include "../as-is/Engine/OpenglDriver/GLGeometry.h"
-//#include "Util.h"
 #include <iostream>
 #include <fstream>
 #include <math.h>
-//#include <QObject>
+#include <memory>
 using namespace std;
-//using namespace oceaninfo::platform;
 
 	static bool loadFile(const string &file, double* tar)
 	{
@@ -36,7 +34,7 @@ using namespace std;
 	{
 		id = -1;
 		_status = 0;
-		_curType = Press;
+		_curType = 0;
 		_mesh = NULL;
 		_cutmesh = NULL;
 		_loader_thread = false;
@@ -521,6 +519,17 @@ using namespace std;
     void FengBaoChao::initializePressData()
     {
         readAllPressDataIntoPool();
+        int idx = 0;
+        for (int x = 0; x < sizex; x++)
+        {
+            for (int y = 0; y < sizey; y++)
+            {
+                PressureData[x][y] = pressDataPool[0][idx];
+                PressureData2[x][y] = pressDataPool[1][idx++];
+            }
+        }
+        memcpy(PressureData1, PressureData, sizeof(PressureData));
+        pressDataIdx = 2;
 
         pressMesh = new Mesh<P3_C4, int>(VirtualGlobeRender::TRIANGLES, VirtualGlobeRender::GPU_DYNAMIC);
         pressMesh->setCapacity(sizex*sizey, (sizex - 1)*(sizey - 1) * 6);
@@ -552,10 +561,15 @@ using namespace std;
         {
             sprintf(pathName, "runtime/taifeng/pressure/700-%d.dat", k*6);
             int *data = new int[sizex* sizey];
-
+            
             if (!loadIntFile(pathName, data))
             {
                 cout << "error(data read)" << endl;
+            }
+
+            for (int i = 0;i < sizex*sizey;i++)
+            {
+               // cout << data[i]<< endl;
             }
 
             pressDataPool[k] = data;
@@ -604,14 +618,16 @@ using namespace std;
 
     void FengBaoChao::updatePressData(int dataID)
     {
+        memcpy(PressureData1, PressureData2, sizeof(PressureData2));
         int idx = 0;
         for (int x = 0;x < sizex;x++)
         {
             for (int y = 0;y < sizey;y++)
             {
-                PressureData[x][y] = pressDataPool[dataID][idx++];
+                PressureData2[x][y] = pressDataPool[dataID][idx++];
             }
         }
+        
     }
 
 	void FengBaoChao::transformToKthFrame()
@@ -726,6 +742,14 @@ using namespace std;
             for (int i = 0; i< sizex*sizey; i++)
             {
                 pressMesh->setVertex(i, P3_C4(vertexPos[i], vertexCol[i]));
+                pressMesh->position[i * 3] = vertexPos[i].x;
+                pressMesh->position[i * 3 + 1] = vertexPos[i].y;
+                pressMesh->position[i * 3 + 2] = vertexPos[i].z;
+                pressMesh->color[i * 4] = vertexCol[i].x;
+                pressMesh->color[i * 4 + 1] = vertexCol[i].y;
+                pressMesh->color[i * 4 + 2] = vertexCol[i].z;
+                pressMesh->color[i * 4 + 3] = vertexCol[i].w;
+
             }
 
             delete[]vertexPos;
@@ -773,7 +797,6 @@ using namespace std;
                 pressMesh->updateGPUVertexData(vertexData);
             }
             break;
-            break;
         }
         default:
             return;
@@ -797,7 +820,7 @@ using namespace std;
             switch (_curType)
             {
             case Speed:
-                if (iframe % 100 == 0)
+                if (iframe % 32 == 0)
                 {
                     updateSpeedData(speedDataIdx);
                     speedDataIdx = (speedDataIdx + 1) % speedDataNum;
@@ -848,7 +871,9 @@ using namespace std;
 		fbc_pass->setProgramConstantData("og_modelViewPerspectiveMatrix", worldToScreenMatrix4.ptr(), "mat4", sizeof(Matrix4));
 		fbc_pass->setProgramConstantData("u_cam", eyef.ptr(), "vec3", sizeof(Vector3));
 		//fbc_pass->mBlendState = BlendState(true, BLEND_OP_ADD, BLEND_SRC_ALPHA, BLEND_INV_SRC_ALPHA);//INV可能是错的
-		b_cut = false;
+        fbc_pass->mBlendState = BlendState(true, BLEND_OP_ADD, BLEND_INV_SRC_ALPHA, BLEND_INV_SRC_ALPHA);//INV可能是错的
+
+        b_cut = false;
 		if (!b_cut)
 			fbc_pass->setProgramConstantData("func", Vector4(0, 0, 0, 0).ptr(), "vec4", sizeof(Vector4));
 		else
@@ -858,20 +883,9 @@ using namespace std;
 
 	void FengBaoChao::createDataEntity(SceneManager* scene_manager, const string &name)
 	{
-        switch (_curType)
-        {
-        case Speed:
-            speedDataEntity = speedMesh->createEntity(scene_manager, name);
-            break;
-        case Temp:
-            tempDataEntity = tempMesh->createEntity(scene_manager, name);
-            break;
-        case Press:
-            pressDataEntity = pressMesh->createEntity(scene_manager, name);
-            break;
-        default:
-            return;
-        }
+        speedDataEntity = speedMesh->createEntity(scene_manager, "F_speed");
+        tempDataEntity = tempMesh->createEntity(scene_manager, "F_temp");
+        pressDataEntity = pressMesh->createEntity(scene_manager, "F_press");
 	}
 
 	void FengBaoChao::addDataToRenderQueue(RenderQueue & renderQueue)

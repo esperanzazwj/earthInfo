@@ -167,6 +167,7 @@ public:
 	double clicked_longtitude, clicked_latitude;
     double target_longtitude, target_latitude;
     bool placeObj;
+    int F_Type;
 
     bool left_mouse_pressed, right_mouse_pressed;
     bool left_mouse_just_release, right_mouse_just_release;
@@ -180,7 +181,7 @@ public:
 		:w(w), h(h), camera(camera), earthshape(earthshape),
 		enableRotation(false), firstMove(false), RotateSpeed(100), mppos(0, 0), lastpos(0, 0),
 		dragging(false),mouse_moved(false),mouse_pressed(false), moveSpeed(100), move_step(100), moving_scale(1),
-		camera_info(), mouse_event(), clicked_longtitude(0), clicked_latitude(0), target_longtitude(0), target_latitude(0),
+		camera_info(), mouse_event(), clicked_longtitude(0), clicked_latitude(0), target_longtitude(0), target_latitude(0), F_Type(0),
         placeObj(false), left_mouse_pressed(false), right_mouse_pressed(false), left_mouse_just_release(false), right_mouse_just_release(false)
 	{
 
@@ -211,6 +212,21 @@ public:
         if (glfwGetKey(ctx, GLFW_KEY_X) == GLFW_PRESS) {
             placeObj = true;
         }
+        if (glfwGetKey(ctx, GLFW_KEY_F1) == GLFW_PRESS) {
+            //Speed mode
+            F_Type = 1;
+        }
+        if (glfwGetKey(ctx, GLFW_KEY_F2) == GLFW_PRESS) {
+            //Temp mode
+            F_Type = 2;
+        }
+        if (glfwGetKey(ctx, GLFW_KEY_F3) == GLFW_PRESS) {
+            //Pressure mode
+            F_Type = 3;
+        }
+
+        //need add more
+
 	}
 	void rotateGlobe(VirtualGlobeScene::MomentumCamera *camera)
 	{
