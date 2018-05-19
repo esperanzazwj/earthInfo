@@ -6,10 +6,9 @@ void main()
 {
     if(abs(func.x + func.y + func.z) >0.01)
     {
-		if(worldPosition.x * func.x + worldPosition.y* func.y + worldPosition.z* func.z + func.w < 0)
+		if(worldPosition.x * func.x + worldPosition.y* func.y + worldPosition.z* func.z + func.w < 0.0)
 			discard;
     }
-    fragmentColor = abs(_col);
+    fragmentColor = _col;
     gl_FragDepth = 0.001;
-	//fragmentColor = vec4(1);
 }

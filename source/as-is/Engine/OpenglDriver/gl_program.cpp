@@ -149,7 +149,8 @@ void GLGpuProgram::compileShader(
 	std::stringstream code;
 	code << prefix;
 	code << text;
-
+	std::cout << "shader code:\n";
+	std::cout << code.str() << std::endl;
 	compileShader(code.str(), type, fileName);
 }
 

@@ -214,15 +214,15 @@ public:
         }
         if (glfwGetKey(ctx, GLFW_KEY_F1) == GLFW_PRESS) {
             //Speed mode
-            F_Type = 1;
+            //F_Type = 1;
         }
         if (glfwGetKey(ctx, GLFW_KEY_F2) == GLFW_PRESS) {
             //Temp mode
-            F_Type = 2;
+            //F_Type = 2;
         }
         if (glfwGetKey(ctx, GLFW_KEY_F3) == GLFW_PRESS) {
             //Pressure mode
-            F_Type = 3;
+            //F_Type = 3;
         }
 
         //need add more
@@ -252,7 +252,7 @@ public:
                 left_mouse_pressed = true; left_mouse_just_release = false;
                 mppos.x = lastpos.x = mouse_event.xpos;
                 mppos.y = lastpos.y = mouse_event.ypos;
-               // cout << "left mouse just pressed" << endl;
+                // cout << "left mouse just pressed" << endl;
             }
             if (mouse_event.mouse_button_right_state == GLFW_PRESS && right_mouse_pressed == false)
             {
@@ -276,12 +276,12 @@ public:
             {
                 // cout << "left mouse keep released" << endl;
                 left_mouse_just_release = false;
-               // dragging = false;
+                // dragging = false;
             }
             if (mouse_event.mouse_button_right_state == GLFW_RELEASE && right_mouse_pressed == false)
             {
                 right_mouse_just_release = false;
-               // dragging = false;
+                // dragging = false;
             }
             if (mouse_event.mouse_button_left_state == GLFW_RELEASE && left_mouse_pressed == true)
             {
@@ -293,7 +293,7 @@ public:
             {
                 right_mouse_pressed = false;
                 right_mouse_just_release = true;
-            }   
+            }
         }
         /*if (mouse_event.mouse_button_left_state == GLFW_PRESS || mouse_event.mouse_button_right_state == GLFW_PRESS)
         {
@@ -310,23 +310,47 @@ public:
             mouse_pressed = false;
         }*/
 
-        if (left_mouse_just_release && !dragging)
+        bool onWeb = true;
+        if (onWeb == false)
         {
-            double lat, log;
-            if (camera->pickingRayIntersection(lastpos.x, height() - lastpos.y - 1, lat, log))
+            if (left_mouse_just_release && !dragging)
             {
-                camera->pointGoto(lat, log);
+                double lat, log;
+                if (camera->pickingRayIntersection(lastpos.x, height() - lastpos.y - 1, lat, log))
+                {
+                    camera->pointGoto(lat, log);
+                }
+                clicked_longtitude = log;
+                clicked_latitude = lat;
+                if (!placeObj)
+                {
+                    target_longtitude = clicked_longtitude;
+                    target_latitude = clicked_latitude;
+                }
+                cout << "(lat, log)->" << degrees(lat) << "," << degrees(log) << endl;
             }
-            clicked_longtitude = log;
-            clicked_latitude = lat;
-            if (!placeObj)
-            {
-                target_longtitude = clicked_longtitude;
-                target_latitude = clicked_latitude;
-            }
-            cout << "(lat, log)->" << degrees(lat) << "," << degrees(log) << endl;
+
         }
-      
+        else
+        {
+            if (mouse_event.mouse_button_left_state == GLFW_PRESS)
+            {
+                double lat, log;
+                if (camera->pickingRayIntersection(mouse_event.xpos, height() - mouse_event.ypos - 1, lat, log))
+                {
+                    camera->pointGoto(lat, log);
+                }
+                clicked_longtitude = log;
+                clicked_latitude = lat;
+                if (!placeObj)
+                {
+                    target_longtitude = clicked_longtitude;
+                    target_latitude = clicked_latitude;
+                }
+                cout << "mouse_event_pos = (" << mouse_event.xpos << "," << mouse_event.ypos << ")" << endl;
+                cout << "(lat, log)->" << degrees(lat) << "," << degrees(log) << endl;
+            }
+        }
         //[IGN] plugin actived and take control
         //      send mousePressEvent to plugin
         /*if (evt->button() == Qt::LeftButton) _lbtn = true;

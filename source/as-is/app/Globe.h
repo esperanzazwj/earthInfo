@@ -19,7 +19,7 @@ namespace app
         double scale = 30.0;
         if (globe_interactive->camera->height_above_terrian() < 1000)
             scale = 50.0;
-        globe_interactive->camera->zoomStepped(yoffset * globe_interactive->moving_scale * globe_interactive->move_step / scale);
+        globe_interactive->camera->zoomStepped(yoffset / 200.0f * globe_interactive->moving_scale * globe_interactive->move_step / scale);
     }
 
     //windows class
@@ -139,6 +139,21 @@ namespace app
                 ImGui::Text("Longitude: %.2lf, Latitude: %.2lf, Height: %.2lf km", log, lat, hei/1000.0f);
 				ImGui::Text("Clicked Position->Longitude: %.2lf, Latitude: %.2lf", degrees(globeInteractive->clicked_longtitude), degrees(globeInteractive->clicked_latitude));
                // ImGui::End();
+            }
+            if (ImGui::Button("Speed", ImVec2(100, 30)))
+            {
+                globeInteractive->F_Type = 1;
+                std::cout << "Speed Button Pressed" << std::endl;
+            }
+            if (ImGui::Button("Temperature", ImVec2(100, 30)))
+            {
+                globeInteractive->F_Type = 2;
+                std::cout << "Temperature Button Pressed" << std::endl;
+            }
+            if (ImGui::Button("Pressure", ImVec2(100, 30)))
+            {
+                globeInteractive->F_Type = 3;
+                std::cout << "Pressure Button Pressed" << std::endl;
             }
             ImGui::End();
         }

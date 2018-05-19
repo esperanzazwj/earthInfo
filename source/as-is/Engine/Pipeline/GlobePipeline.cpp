@@ -117,8 +117,9 @@ void RayCastedGlobeEffect::Init()
     auto& rt_mgr = RenderTargetManager::getInstance();
     auto mainwindow = rt_mgr.get("MainWindow");
     RayCastedGlobe_pass = PassManager::getInstance().LoadPass("RayCastedGlobe_pass", "RayCastedGlobe/RayCastedGlobe_prog.json");
-    RayCastedGlobe_pass->renderTarget = mainwindow;
+	RayCastedGlobe_pass->renderTarget = mainwindow;
 	RayCastedGlobe_pass->mBlendState.mBlendEnable = false;
+	//RayCastedGlobe_pass->mClearState.clearFlag = false;//
 }
 
 void RayCastedGlobeEffect::Update()
@@ -246,7 +247,7 @@ void GlobePipeline::Init()
         weather_effect = new WeatherEffect(main_camera, earthshape, earthRadius, globeInteractive);
         weather_effect->in_scenename = "scene_weather";
         weather_effect->in_cameraname = "main";
-        weather_effect->Init();
+       // weather_effect->Init();
         //fengbaochao effect
         fbc_effect = new fbcEffect(main_camera, earthshape, fbcManager_);
         fbc_effect->in_scenename = "scene_fengbaochao";

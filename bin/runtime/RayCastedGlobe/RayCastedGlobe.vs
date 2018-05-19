@@ -7,7 +7,7 @@ void main()
 {
     vec4 pos;
     pos.xyz = position.xyz - u_rte;
-    pos.w = 1;
+    pos.w = 1.0;
     gl_Position = og_modelViewPerspectiveMatrix * pos; 
     worldPosition = position.xyz;
 }

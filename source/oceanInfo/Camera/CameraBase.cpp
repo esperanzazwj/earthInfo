@@ -632,17 +632,19 @@ namespace VirtualGlobeScene
 		vec3d point;
 		//fb->setReadBuffer(DEPTH);
 		float data = 1.0f;
-		glReadPixels(screenx, screeny, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &data);
-
+		//glReadPixels(screenx, screeny, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &data);
+		cout << "depth = " << data << endl;
 		//fb->readPixels(screenx,screeny,1,1,
 		//				DEPTH_COMPONENT,PixelType::FLOAT,Buffer::Parameters(),
 		//				CPUBuffer(&data));
-		if (data > 0.999999f)
+		
+		/*if (data > 0.999999f)
 		{
 			latitude = 0;
 			longitude = 0;
 			return false;
-		}
+		}*/
+
 		vec3d v1(screenx-viewport_.x, screeny-viewport_.y, 0);
 		vec3d p1 = unproject(v1);
 
@@ -656,13 +658,15 @@ namespace VirtualGlobeScene
 
 		double discriminant = b*b - 4 * a * c;
         double t1 = ((-1.0) * b - sqrt(b*b - 4 * a * c)) / (2*a);
-		if(discriminant <= 0 || altitude_<0 || t1<=0 )//t1是一种异常情况，正常做下去会视点后退计算，暂时不知道里面的计算原理
+		if (discriminant <= 0 || altitude_ < 0 || t1 <= 0)//t1是一种异常情况，正常做下去会视点后退计算，暂时不知道里面的计算原理
 		{
 			//与地球模型求交不成功，改为直接求位置模式
-			point = unproject(vec3d(screenx-viewport_.x,screeny-viewport_.y,data));
-			Geodetic3D i1t = earth_->ToGeodetic3D(point);
-			latitude = i1t.getLatitude();
-			longitude = i1t.getLongitude();
+			//point = unproject(vec3d(screenx-viewport_.x,screeny-viewport_.y,data));
+			//Geodetic3D i1t = earth_->ToGeodetic3D(point);
+			//latitude = i1t.getLatitude();
+			//longitude = i1t.getLongitude();
+
+			latitude = 0;longitude = 0;
 			return false;
 		}
 		vec3d i1(p1.x + t1*(p2.x - p1.x), p1.y + t1*(p2.y - p1.y), p1.z 
