@@ -310,13 +310,14 @@ public:
             mouse_pressed = false;
         }*/
 
-        bool onWeb = true;
+        bool onWeb = false;
         if (onWeb == false)
         {
             if (left_mouse_just_release && !dragging)
             {
                 double lat, log;
-                if (camera->pickingRayIntersection(lastpos.x, height() - lastpos.y - 1, lat, log))
+               // if (camera->pickingRayIntersection(lastpos.x, height() - lastpos.y - 1, lat, log))
+                if (computeIntersection(lastpos.x, height() - lastpos.y - 1, lat, log))
                 {
                     camera->pointGoto(lat, log);
                 }
@@ -629,6 +630,55 @@ public:
     float  width()
     {
         return w;
+    }
+    bool computeIntersection(int screenx, int screeny, double &latitude, double &longitude)
+    {
+        double xpos = double(screenx) / width();
+        double ypos = double(screeny) / height();
+        vec3d oneOverEllipsoidRadiiSquared = earthshape->_oneOverRadiiSquared;
+        vec3d rayOrigin = camera->position();
+        vec3d rayOriginSquared = camera->position() * camera->position();
+        vec3d direction = camera->getDir();
+        vec3d up = camera->getCameraUpVector();
+        vec3d horizontal = direction.crossProduct(up);
+        double fov = camera->fovx();
+        double aspect = camera->aspect();
+        double distToZ = 0.5 / tan(fov / 2.0f);
+        vec3d rayDirection = direction * distToZ + horizontal * (xpos - 0.5) + up * (ypos - 0.5)/ aspect;
+
+        float a = oneOverEllipsoidRadiiSquared.dotproduct(rayDirection * rayDirection);
+        //dot(rayDirection * rayDirection, oneOverEllipsoidRadiiSquared);
+        float b = 2.0 *oneOverEllipsoidRadiiSquared.dotproduct(rayOrigin * rayDirection);
+        //dot(rayOrigin * rayDirection, oneOverEllipsoidRadiiSquared);
+        float c = oneOverEllipsoidRadiiSquared.dotproduct(rayOriginSquared) - 1.0;
+        //dot(rayOriginSquared, oneOverEllipsoidRadiiSquared) - 1.0;
+        float discriminant = b * b - 4.0 * a * c;
+
+        if (discriminant < 0.0)
+        {
+            latitude = 0; longitude = 0;
+            return false;
+        }
+
+        float nearz = 0.0, farz = 0.0;
+        if (discriminant == 0.0)
+        {
+            float time = -0.5 * b / a;
+            nearz = time; farz = time;
+        }
+        else
+        {
+            float t = -0.5 * (b + (b > 0.0 ? 1.0 : -1.0) * sqrt(discriminant));
+            float root1 = t / a;
+            float root2 = c / t;
+            nearz = min(root1, root2);
+            farz = max(root1, root2);
+        }
+        vec3d position = rayOrigin + rayDirection * nearz;
+        Geodetic3D i1t = earthshape->ToGeodetic3D(position);
+        latitude = i1t.getLatitude();
+        longitude = i1t.getLongitude();
+        return true;
     }
 };
 
