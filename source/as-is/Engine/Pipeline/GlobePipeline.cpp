@@ -118,8 +118,9 @@ void RayCastedGlobeEffect::Init()
     auto mainwindow = rt_mgr.get("MainWindow");
     RayCastedGlobe_pass = PassManager::getInstance().LoadPass("RayCastedGlobe_pass", "RayCastedGlobe/RayCastedGlobe_prog.json");
 	RayCastedGlobe_pass->renderTarget = mainwindow;
-	RayCastedGlobe_pass->mBlendState.mBlendEnable = false;
-	//RayCastedGlobe_pass->mClearState.clearFlag = false;//
+	//RayCastedGlobe_pass->mBlendState.mBlendEnable = false;
+	RayCastedGlobe_pass->mBlendState = BlendState(true, BLEND_OP_ADD, BLEND_ONE, BLEND_ZERO);//INV¿ÉÄÜÊÇ´í
+	RayCastedGlobe_pass->mClearState.clearFlag = false;//if webgl
 }
 
 void RayCastedGlobeEffect::Update()

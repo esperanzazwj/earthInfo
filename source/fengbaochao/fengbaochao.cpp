@@ -602,7 +602,7 @@ using namespace std;
 		fbc_pass->setProgramConstantData("og_modelViewPerspectiveMatrix", worldToScreenMatrix4.ptr(), "mat4", sizeof(Matrix4));
 		fbc_pass->setProgramConstantData("u_cam", eyef.ptr(), "vec3", sizeof(Vector3));
 		//fbc_pass->mBlendState = BlendState(true, BLEND_OP_ADD, BLEND_SRC_ALPHA, BLEND_INV_SRC_ALPHA);//INV可能是错的
-        fbc_pass->mBlendState = BlendState(true, BLEND_OP_ADD, BLEND_SRC_ALPHA, BLEND_INV_SRC_ALPHA);//INV可能是错的
+        fbc_pass->mBlendState = BlendState(true, BLEND_OP_ADD, BLEND_ZERO, BLEND_ONE);//INV可能是错的
 
         b_cut = false;
 		if (!b_cut)

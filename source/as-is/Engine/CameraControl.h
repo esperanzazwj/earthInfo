@@ -309,7 +309,6 @@ public:
         {
             mouse_pressed = false;
         }*/
-
         bool onWeb = false;
         if (onWeb == false)
         {
@@ -337,12 +336,16 @@ public:
             if (mouse_event.mouse_button_left_state == GLFW_PRESS)
             {
                 double lat, log;
-                if (camera->pickingRayIntersection(mouse_event.xpos, height() - mouse_event.ypos - 1, lat, log))
-                {
+                //if (camera->pickingRayIntersection(mouse_event.xpos, height() - mouse_event.ypos - 1, lat, log))
+				cout << "mouse_event_pos = (" << mouse_event.xpos << "," << mouse_event.ypos << ")" << endl;
+
+				if (computeIntersection(mouse_event.xpos, height() - mouse_event.ypos - 1, lat, log))
+				{
                     camera->pointGoto(lat, log);
                 }
                 clicked_longtitude = log;
                 clicked_latitude = lat;
+				cout << "check Point3 " << endl;
                 if (!placeObj)
                 {
                     target_longtitude = clicked_longtitude;
@@ -526,14 +529,18 @@ public:
             cout << "Global, trackball, left/not right" << endl;
             float scale = std::max<float>(1.0f, (speed / 3000.0));
             double prelat, prelog;
-            bool prehit = camera->pickingRayIntersection(lastpos.x, height() - lastpos.y - 1,
-                prelat, prelog);
+           // bool prehit = camera->pickingRayIntersection(lastpos.x, height() - lastpos.y - 1,
+            //    prelat, prelog);
+			bool prehit = computeIntersection(lastpos.x, height() - lastpos.y - 1,
+				prelat, prelog);
             double lat, log;
 
             if (!camera->underground())
             {
-                bool hit = camera->pickingRayIntersection(mouse_event.xpos, height() - mouse_event.ypos - 1, lat,
-                    log);
+               // bool hit = camera->pickingRayIntersection(mouse_event.xpos, height() - mouse_event.ypos - 1, lat,
+               //     log);
+				bool hit = computeIntersection(mouse_event.xpos, height() - mouse_event.ypos - 1, lat,
+					log);
                 if (hit && prehit && false) {
                     double alti_at = camera->altitudeAboveTerrain();
                     double alti = camera->altitude();
