@@ -82,6 +82,7 @@ else ()
         ss-engine
         GLEW::GLEW
         OpenGL::GL
+        OpenGL::GLU
     )
 endif ()
 

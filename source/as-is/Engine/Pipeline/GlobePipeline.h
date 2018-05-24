@@ -44,6 +44,8 @@ private:
 	VirtualGlobeScene::MomentumCamera *main_camera;
 	Ellipsoid *earthshape;
 	float earthRadius;
+
+	friend struct GlobePipeline;
 };
 
 struct fbcEffect : PipelineEffect
@@ -68,13 +70,15 @@ private:
 	VirtualGlobeScene::MomentumCamera *main_camera;
 	Ellipsoid *earthshape;
 	fbcManager *fbcManager_;
+
+	friend struct GlobePipeline;
 };
 
 struct RayCastedGlobeEffect : PipelineEffect
 {
 public:
-	RayCastedGlobeEffect(VirtualGlobeScene::MomentumCamera *main_camera, Ellipsoid *earthshape, float earthRadius, GlobeInteractive *globeInteractive)
-		:main_camera(main_camera), earthshape(earthshape), earthRadius(earthRadius), globeInteractive(globeInteractive)
+	RayCastedGlobeEffect(VirtualGlobeScene::MomentumCamera *main_camera, Ellipsoid *earthshape, float earthRadius, GlobeInteractive *globeInteractive, Pass* fbc_pass)
+		:fbc_pass{fbc_pass}, main_camera(main_camera), earthshape(earthshape), earthRadius(earthRadius), globeInteractive(globeInteractive)
 	{
 		this->name = "RayCastedGlobe";
 		//globeInteractive = new GlobeInteractive(main_camera, earthshape);// app::globeInteractive;
@@ -94,11 +98,15 @@ public:
 private:
 	RenderTarget * rt_out{};
 	Pass* RayCastedGlobe_pass{};
+	Pass* fbc_pass{};
+	Pass* weather_pass{};
 	//Camera Controller
 	GlobeInteractive * globeInteractive;
 	VirtualGlobeScene::MomentumCamera *main_camera;
 	Ellipsoid *earthshape;
 	float earthRadius;
+
+	friend struct GlobePipeline;
 };
 
 

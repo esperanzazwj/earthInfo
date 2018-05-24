@@ -46,6 +46,7 @@ void WeatherEffect::Init()
     weather_pass = PassManager::getInstance().LoadPass("weather_pass", "RayCastedGlobe/weather_prog.json");
     weather_pass->renderTarget = mainwindow;
     weather_pass->mClearState.clearFlag = false;
+    weather_pass->mBlendState = BlendState(true, BLEND_OP_ADD, BLEND_SRC_ALPHA, BLEND_INV_SRC_ALPHA);
 
     //fbcMgr->Init();
 
@@ -118,9 +119,6 @@ void RayCastedGlobeEffect::Init()
     auto mainwindow = rt_mgr.get("MainWindow");
     RayCastedGlobe_pass = PassManager::getInstance().LoadPass("RayCastedGlobe_pass", "RayCastedGlobe/RayCastedGlobe_prog.json");
 	RayCastedGlobe_pass->renderTarget = mainwindow;
-	//RayCastedGlobe_pass->mBlendState.mBlendEnable = false;
-	RayCastedGlobe_pass->mBlendState = BlendState(true, BLEND_OP_ADD, BLEND_ONE, BLEND_ZERO);//INV¿ÉÄÜÊÇ´í
-	RayCastedGlobe_pass->mClearState.clearFlag = false;//if webgl
 }
 
 void RayCastedGlobeEffect::Update()
@@ -186,9 +184,15 @@ void RayCastedGlobeEffect::Update()
     RayCastedGlobe_pass->queue = queue;
 }
 
-void RayCastedGlobeEffect::GetInputPasses(vector<Pass*>& passes, vector<pair<Pass*, Pass*>>& /*inputPasses*/, vector<pair<Texture*&, Texture*&>>& inputTexture)
+void RayCastedGlobeEffect::GetInputPasses(vector<Pass*>& passes, vector<pair<Pass*, Pass*>>& pass_order, vector<pair<Texture*&, Texture*&>>& inputTexture)
 {
     passes.push_back(RayCastedGlobe_pass);
+    if (weather_pass) {
+	pass_order.emplace_back(RayCastedGlobe_pass, weather_pass);
+	pass_order.emplace_back(weather_pass, fbc_pass);
+    } else {
+	pass_order.emplace_back(RayCastedGlobe_pass, fbc_pass);
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -200,6 +204,7 @@ void fbcEffect::Init()
     fbc_pass->renderTarget = mainwindow;
     fbcManager_->addPassToFengBaoChao(fbc_pass);
 	fbc_pass->mClearState.clearFlag = false;
+    fbc_pass->mBlendState = BlendState(true, BLEND_OP_ADD, BLEND_SRC_ALPHA, BLEND_INV_SRC_ALPHA);
 }
 
 void fbcEffect::Update()
@@ -239,24 +244,25 @@ void GlobePipeline::Init()
     }
     else //this way
     {
-        //draw the earth
-        fx_main_raycasted = new RayCastedGlobeEffect(main_camera, earthshape, earthRadius, globeInteractive);
-        fx_main_raycasted->in_scenename = "scene1";
-        fx_main_raycasted->in_cameraname = "main";
-        fx_main_raycasted->Init();
         //weather effect
         weather_effect = new WeatherEffect(main_camera, earthshape, earthRadius, globeInteractive);
         weather_effect->in_scenename = "scene_weather";
         weather_effect->in_cameraname = "main";
-       // weather_effect->Init();
+        weather_effect->Init();
         //fengbaochao effect
         fbc_effect = new fbcEffect(main_camera, earthshape, fbcManager_);
         fbc_effect->in_scenename = "scene_fengbaochao";
         fbc_effect->in_cameraname = "main";
         fbc_effect->Init();
-        passGraph.AttachEffect(fx_main_raycasted);
+        //prepare the earth
+        fx_main_raycasted = new RayCastedGlobeEffect(main_camera, earthshape, earthRadius, globeInteractive, fbc_effect->fbc_pass);
+        fx_main_raycasted->in_scenename = "scene1";
+        fx_main_raycasted->in_cameraname = "main";
+        fx_main_raycasted->Init();
+
         //passGraph.AttachEffect(weather_effect);
         passGraph.AttachEffect(fbc_effect);
+        passGraph.AttachEffect(fx_main_raycasted);
         passGraph.PrintGraph();
     }
 }
@@ -269,13 +275,19 @@ void GlobePipeline::Render()
     if (globeInteractive->placeObj == true && hasAttachedWeather == false)
     {
         std::cout << "attached weather effects" << std::endl;
+        passGraph.DetachEffect(fx_main_raycasted);
         passGraph.AttachEffect(weather_effect);
+        fx_main_raycasted->weather_pass = weather_effect->weather_pass;
+        passGraph.AttachEffect(fx_main_raycasted);
         hasAttachedWeather = true;
     }
     if (globeInteractive->placeObj == false && hasAttachedWeather == true)
     {
         std::cout << "deattached weather effects" << std::endl;
+        passGraph.DetachEffect(fx_main_raycasted);
         passGraph.DetachEffect(weather_effect);
+        fx_main_raycasted->weather_pass = nullptr;
+        passGraph.AttachEffect(fx_main_raycasted);
         hasAttachedWeather = false;
     }
     /////////////////////////////////////////////////
